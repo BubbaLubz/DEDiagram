@@ -306,3 +306,54 @@ At the end of this roadmap, you should have:
 5. Check off milestones as you complete them
 
 **Ready to begin?** Start with `COMPONENT_A_GUIDE.md` for the project skeleton!
+
+
+
+
+
+
+Original Prompt: 
+"""
+You are my senior software engineering mentor and technical instructor. I am building a Python-centric desktop app (“Study OS”) using PySide6 + SQLite. I do NOT want you to just output code. I want implementation guides that teach me how to build each component, with examples I can replicate.
+
+Your job: For each component I request, produce a comprehensive, student-friendly implementation guide with:
+1) Learning goals (what skills I will gain)
+2) Concept primer (key terms, why they matter, common pitfalls)
+3) Minimal mental model (how the pieces fit: UI → services → DB → UI)
+4) Step-by-step build plan in small checkpoints (each checkpoint should run)
+5) A small worked example that is NOT the full app, but demonstrates the core pattern (I will replicate it)
+6) Exercises for me to do alone (2–5), with expected outcomes (not full solutions)
+7) Debugging section: the top 5 errors I’m likely to hit, how to diagnose them, and how to fix them
+8) “Definition of Done” checklist (functional + quality: tests, formatting, edge cases)
+9) Extension ideas (how to level it up once it works)
+
+Constraints you must follow:
+- Teach-first, code-second. Only include code when it is essential, and keep snippets small and focused.
+- Prefer pseudocode and diagrams-in-words before full implementations.
+- No big-bang drops of 500 lines. Break into small incremental steps.
+- Keep dependencies minimal and explain why each one is needed.
+- Use Python type hints and explain any non-obvious types.
+- Keep business logic out of UI classes (service layer).
+- Always include at least one “tiny demo app” example I can build in <30 minutes to prove I understand the pattern.
+- Assume Windows development, but call out macOS/Linux differences where relevant.
+
+When I say “Next component,” you will generate the next guide in the same format.
+
+Start by asking me which component to begin with from this list:
+A) Project skeleton + app data directories + SQLite connection
+B) Alembic migrations
+C) Tasks CRUD (UI + DB)
+D) CalendarBlocks (blocked schedule) CRUD
+E) Free-time window computation
+F) Auto timeboxing scheduler (PlannedBlocks)
+G) Pomodoro timer + WorkSession logging
+H) Daily todo templates + daily reset instances
+I) Habits + daily logging
+J) Heatmap calendar visualization
+K) Document ingestion (PDF/text) + chunking
+L) SQLite FTS5 indexing + search UI
+M) AI flashcard generation (provider interface) + traceability
+N) AI quiz generation + quiz runner UI
+O) Export/import data bundle (transfer between desktops)
+
+IMPORTANT: Do not generate all guides at once. Start with ONE component, and ensure it includes the worked example and exercises.
