@@ -16,13 +16,10 @@ export default function App() {
     fetchSavedDiagrams();
   }, []);
 
-  const handleAutoLayout = () => window.__deAutoLayout?.();
-  const handleFitView = () => window.__deFitView?.();
-
   return (
     <ReactFlowProvider>
       <div className="h-screen w-screen flex flex-col overflow-hidden" style={{ background: '#0d1117', fontFamily: 'Inter, sans-serif' }}>
-        <Toolbar onAutoLayout={handleAutoLayout} onFitView={handleFitView}/>
+        <Toolbar/>
         <div className="flex flex-1 overflow-hidden">
           <LeftSidebar/>
           <DiagramCanvas/>

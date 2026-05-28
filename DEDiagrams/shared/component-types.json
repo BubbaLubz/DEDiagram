@@ -1,0 +1,15 @@
+{
+  "byCategory": {
+    "Sources":        ["postgresql", "mysql", "mongodb", "rest_api", "files_s3"],
+    "Ingestion/CDC":  ["debezium", "fivetran", "airbyte", "kinesis"],
+    "Streaming":      ["kafka", "rabbitmq"],
+    "Processing":     ["spark", "flink", "dbt", "databricks", "aws_glue"],
+    "Orchestration":  ["airflow", "prefect", "dagster"],
+    "Storage/Lakes":  ["s3", "adls", "delta_lake", "iceberg", "hdfs"],
+    "Warehouses":     ["snowflake", "bigquery", "redshift", "azure_synapse"],
+    "Serving/BI":     ["tableau", "looker", "power_bi", "superset", "redis"],
+    "Infrastructure": ["docker"],
+    "AI/LLM":         ["anthropic", "openai"],
+    "Custom":         ["custom_box"]
+  }
+}

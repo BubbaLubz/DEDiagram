@@ -5,6 +5,14 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const Anthropic = require('@anthropic-ai/sdk');
 
+// Single source of truth for valid component types.
+// To add a component: update shared/component-types.json AND client/src/data/componentLibrary.js.
+const { byCategory } = require('../shared/component-types.json');
+const VALID_COMPONENT_TYPES = new Set(Object.values(byCategory).flat());
+const COMPONENT_TYPE_LIST = Object.entries(byCategory)
+  .map(([cat, types]) => `${cat.padEnd(16)}${types.join(', ')}`)
+  .join('\n');
+
 const app = express();
 const PORT = 3001;
 const DATA_DIR = path.join(__dirname, 'data');
@@ -76,31 +84,10 @@ app.delete('/api/diagrams/:id', (req, res) => {
 
 // ─── AI Generate ────────────────────────────────────────────────────────────
 
-const VALID_COMPONENT_TYPES = new Set([
-  'postgresql','mysql','mongodb','rest_api','files_s3',
-  'debezium','fivetran','airbyte','kinesis',
-  'kafka','rabbitmq',
-  'spark','flink','dbt','databricks','aws_glue',
-  'airflow','prefect','dagster',
-  's3','adls','delta_lake','iceberg','hdfs',
-  'snowflake','bigquery','redshift','azure_synapse',
-  'tableau','looker','power_bi','superset','redis',
-  'docker','anthropic','openai',
-]);
-
 const SYSTEM_PROMPT = `You are an expert data engineering pipeline architect. Given a description of a data application, generate a precise pipeline diagram JSON.
 
 AVAILABLE COMPONENT TYPES (use exact string values only):
-Sources:        postgresql, mysql, mongodb, rest_api, files_s3
-Ingestion/CDC:  debezium, fivetran, airbyte, kinesis
-Streaming:      kafka, rabbitmq
-Processing:     spark, flink, dbt, databricks, aws_glue
-Orchestration:  airflow, prefect, dagster
-Storage/Lakes:  s3, adls, delta_lake, iceberg, hdfs
-Warehouses:     snowflake, bigquery, redshift, azure_synapse
-Serving/BI:     tableau, looker, power_bi, superset, redis
-Infrastructure: docker
-AI/LLM:         anthropic, openai
+${COMPONENT_TYPE_LIST}
 
 EDGE TYPES: batch, streaming, api, cdc, event, sql
 
@@ -253,16 +240,7 @@ app.post('/api/generate', async (req, res) => {
 const EDIT_SYSTEM_PROMPT = `You are an expert data engineering pipeline architect modifying an EXISTING diagram.
 
 AVAILABLE COMPONENT TYPES (use exact string values only):
-Sources:        postgresql, mysql, mongodb, rest_api, files_s3
-Ingestion/CDC:  debezium, fivetran, airbyte, kinesis
-Streaming:      kafka, rabbitmq
-Processing:     spark, flink, dbt, databricks, aws_glue
-Orchestration:  airflow, prefect, dagster
-Storage/Lakes:  s3, adls, delta_lake, iceberg, hdfs
-Warehouses:     snowflake, bigquery, redshift, azure_synapse
-Serving/BI:     tableau, looker, power_bi, superset, redis
-Infrastructure: docker
-AI/LLM:         anthropic, openai
+${COMPONENT_TYPE_LIST}
 
 EDGE TYPES: batch, streaming, api, cdc, event, sql
 

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Background, Controls, MiniMap, BackgroundVariant,
   useReactFlow, MarkerType, Panel,
@@ -11,6 +11,7 @@ import 'reactflow/dist/style.css';
 import ComponentNode from './nodes/ComponentNode';
 import LabeledEdge from './edges/LabeledEdge';
 import useStore from '../store';
+import { CanvasActionsContext } from '../context/CanvasActionsContext';
 
 const nodeTypes = { component: ComponentNode };
 const edgeTypes = { labeled: LabeledEdge };
@@ -139,14 +140,14 @@ export default function DiagramCanvas() {
     return () => window.removeEventListener('keydown', handler);
   }, [openSaveModal]);
 
-  // Expose layout/fitView/export handlers via a global ref (for Toolbar)
-  useEffect(() => {
-    window.__deAutoLayout = handleAutoLayout;
-    window.__deFitView = handleFitView;
-    window.__deExportImage = handleExportImage;
-  }, [handleAutoLayout, handleFitView, handleExportImage]);
+  const canvasActions = useMemo(() => ({
+    autoLayout: handleAutoLayout,
+    fitView: handleFitView,
+    exportImage: handleExportImage,
+  }), [handleAutoLayout, handleFitView, handleExportImage]);
 
   return (
+    <CanvasActionsContext.Provider value={canvasActions}>
     <div ref={reactFlowWrapper} className="flex-1 h-full relative">
       <ReactFlow
         nodes={nodes}
@@ -245,6 +246,7 @@ export default function DiagramCanvas() {
         )}
       </ReactFlow>
     </div>
+    </CanvasActionsContext.Provider>
   );
 }
 

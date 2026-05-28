@@ -4,6 +4,7 @@ import {
   Maximize, RotateCcw, Wand2, DollarSign, Image, Upload,
 } from 'lucide-react';
 import useStore from '../store';
+import { useCanvasActions } from '../context/CanvasActionsContext';
 
 const EDGE_TYPES = [
   { value: 'batch',     label: 'Batch',     color: '#94a3b8' },
@@ -14,7 +15,8 @@ const EDGE_TYPES = [
   { value: 'sql',       label: 'SQL',       color: '#10b981' },
 ];
 
-export default function Toolbar({ onAutoLayout, onFitView }) {
+export default function Toolbar() {
+  const { autoLayout, fitView, exportImage } = useCanvasActions();
   const {
     currentDiagramName, setDiagramName, isDirty,
     openSaveModal, openLoadModal, clearCanvas,
@@ -126,15 +128,15 @@ export default function Toolbar({ onAutoLayout, onFitView }) {
         <ToolbarButton onClick={openLoadModal} title="Open saved" icon={FolderOpen}/>
         <ToolbarButton onClick={() => fileInputRef.current?.click()} title="Import JSON" icon={Upload}/>
         <ToolbarButton onClick={handleExportJSON} title="Export JSON" icon={Download}/>
-        <ToolbarButton onClick={() => window.__deExportImage?.()} title="Export PNG image" icon={Image}/>
+        <ToolbarButton onClick={exportImage} title="Export PNG image" icon={Image}/>
       </div>
 
       <div className="w-px h-5 bg-slate-700"/>
 
       {/* Layout + View */}
       <div className="flex items-center gap-1">
-        <ToolbarButton onClick={onAutoLayout} title="Auto-layout left→right" icon={AlignLeft} label="Auto Layout"/>
-        <ToolbarButton onClick={onFitView} title="Fit all to view" icon={Maximize}/>
+        <ToolbarButton onClick={autoLayout} title="Auto-layout left→right" icon={AlignLeft} label="Auto Layout"/>
+        <ToolbarButton onClick={fitView} title="Fit all to view" icon={Maximize}/>
       </div>
 
       <div className="w-px h-5 bg-slate-700"/>

@@ -17,7 +17,7 @@ export const COMPONENTS = {
   postgresql: {
     type: 'postgresql', label: 'PostgreSQL', category: 'source',
     color: '#336791', bg: '#1a2f45',
-    iconText: 'PG', iconEmoji: '🐘',
+    iconText: 'PG', iconEmoji: '🐘', lucideIcon: 'Database',
     tagline: 'Relational DB / CDC Source',
     description: 'Open-source RDBMS used as a transactional source of truth. Supports logical replication for CDC.',
     capabilities: ['ACID transactions', 'Logical replication (CDC)', 'JSONB support', 'Full-text search', 'Partitioning'],
@@ -27,7 +27,7 @@ export const COMPONENTS = {
   mysql: {
     type: 'mysql', label: 'MySQL', category: 'source',
     color: '#4479a1', bg: '#1a2a3d',
-    iconText: 'MY', iconEmoji: '🐬',
+    iconText: 'MY', iconEmoji: '🐬', lucideIcon: 'Database',
     tagline: 'Relational DB / CDC Source',
     description: 'Widely-used RDBMS. Binlog-based CDC allows capturing INSERT/UPDATE/DELETE events for streaming pipelines.',
     capabilities: ['Binlog CDC', 'InnoDB transactions', 'JSON columns', 'Read replicas'],
@@ -37,7 +37,7 @@ export const COMPONENTS = {
   mongodb: {
     type: 'mongodb', label: 'MongoDB', category: 'source',
     color: '#47a248', bg: '#1a2e1a',
-    iconText: 'MDB', iconEmoji: '🍃',
+    iconText: 'MDB', iconEmoji: '🍃', lucideIcon: 'Leaf',
     tagline: 'Document Store / Change Streams',
     description: 'Document-oriented NoSQL database. Change Streams enable real-time CDC on collections.',
     capabilities: ['Change Streams (CDC)', 'Aggregation pipeline', 'Flexible schema', 'Horizontal sharding'],
@@ -47,7 +47,7 @@ export const COMPONENTS = {
   rest_api: {
     type: 'rest_api', label: 'REST API', category: 'source',
     color: '#6366f1', bg: '#1e1b4b',
-    iconText: 'API', iconEmoji: '📡',
+    iconText: 'API', iconEmoji: '📡', lucideIcon: 'Globe',
     tagline: 'HTTP / REST Data Source',
     description: 'External or internal HTTP APIs as data sources. Typically polled on a schedule or triggered via webhooks.',
     capabilities: ['Polling / Webhooks', 'Pagination handling', 'Auth: OAuth2 / API keys', 'Rate limiting'],
@@ -57,7 +57,7 @@ export const COMPONENTS = {
   files_s3: {
     type: 'files_s3', label: 'CSV / Files', category: 'source',
     color: '#64748b', bg: '#1e2330',
-    iconText: 'CSV', iconEmoji: '📁',
+    iconText: 'CSV', iconEmoji: '📁', lucideIcon: 'FileText',
     tagline: 'Flat File / Object Storage Source',
     description: 'Structured or semi-structured files (CSV, JSON, Parquet, Avro) stored in S3, GCS, or local storage.',
     capabilities: ['Batch file ingestion', 'Glob pattern matching', 'Schema inference', 'Incremental via filename/mtime'],
@@ -69,7 +69,7 @@ export const COMPONENTS = {
   debezium: {
     type: 'debezium', label: 'Debezium', category: 'ingestion',
     color: '#d73a2c', bg: '#3d1212',
-    iconText: 'DBZ', iconEmoji: '🔄',
+    iconText: 'DBZ', iconEmoji: '🔄', lucideIcon: 'RefreshCw',
     tagline: 'CDC Connector Platform',
     description: 'Open-source distributed CDC platform. Captures row-level DB changes and streams them as events to Kafka.',
     capabilities: ['Connectors: Postgres, MySQL, MongoDB, Oracle', 'Exactly-once delivery (with Kafka)', 'Schema registry integration', 'Snapshot + streaming modes'],
@@ -79,7 +79,7 @@ export const COMPONENTS = {
   fivetran: {
     type: 'fivetran', label: 'Fivetran', category: 'ingestion',
     color: '#0073e6', bg: '#001d40',
-    iconText: 'FT', iconEmoji: '🔗',
+    iconText: 'FT', iconEmoji: '🔗', lucideIcon: 'GitMerge',
     tagline: 'Managed ELT Connector',
     description: 'Fully managed ELT service with 300+ pre-built connectors. Handles schema drift, normalization, and incremental sync.',
     capabilities: ['300+ source connectors', 'Automatic schema migration', 'Incremental / full refresh', 'Fivetran Transformations (dbt)'],
@@ -89,7 +89,7 @@ export const COMPONENTS = {
   airbyte: {
     type: 'airbyte', label: 'Airbyte', category: 'ingestion',
     color: '#615ef0', bg: '#1a1a4a',
-    iconText: 'AB', iconEmoji: '✈️',
+    iconText: 'AB', iconEmoji: '✈️', lucideIcon: 'RefreshCcw',
     tagline: 'Open-source ELT Platform',
     description: 'Open-source data integration with 300+ connectors. Self-hosted or Airbyte Cloud. Supports custom connectors via CDK.',
     capabilities: ['Open-source + cloud', 'Connector Development Kit', 'Change data capture', 'dbt transformations'],
@@ -99,7 +99,7 @@ export const COMPONENTS = {
   kinesis: {
     type: 'kinesis', label: 'AWS Kinesis', category: 'ingestion',
     color: '#ff9900', bg: '#3d2600',
-    iconText: 'KNS', iconEmoji: '🌊',
+    iconText: 'KNS', iconEmoji: '🌊', lucideIcon: 'Activity',
     tagline: 'Managed Stream Ingestion',
     description: 'AWS managed streaming service. Kinesis Data Streams for custom processing, Firehose for direct S3/Redshift delivery.',
     capabilities: ['Managed scaling', 'Kinesis Firehose → S3/Redshift', 'KCL consumer library', '7-day retention'],
@@ -111,7 +111,7 @@ export const COMPONENTS = {
   kafka: {
     type: 'kafka', label: 'Apache Kafka', category: 'streaming',
     color: '#e8642a', bg: '#3d1a0a',
-    iconText: 'K', iconEmoji: '⚡',
+    iconText: 'K', iconEmoji: '⚡', lucideIcon: 'MessageSquare',
     tagline: 'Distributed Event Streaming',
     description: 'High-throughput distributed event log. The backbone of event-driven architectures. Topics, partitions, consumer groups.',
     capabilities: ['100k+ msg/s per broker', 'Log compaction', 'Exactly-once semantics', 'Schema Registry', 'Kafka Connect', 'ksqlDB'],
@@ -121,7 +121,7 @@ export const COMPONENTS = {
   rabbitmq: {
     type: 'rabbitmq', label: 'RabbitMQ', category: 'streaming',
     color: '#ff6600', bg: '#3d1a00',
-    iconText: 'RMQ', iconEmoji: '🐇',
+    iconText: 'RMQ', iconEmoji: '🐇', lucideIcon: 'Mail',
     tagline: 'Message Broker / Task Queue',
     description: 'AMQP-based message broker. Best for task queues, RPC patterns, and complex routing. Lower throughput than Kafka.',
     capabilities: ['AMQP / STOMP / MQTT', 'Dead letter exchanges', 'Priority queues', 'Federation plugin'],
@@ -133,7 +133,7 @@ export const COMPONENTS = {
   spark: {
     type: 'spark', label: 'Apache Spark', category: 'processing',
     color: '#e25a1c', bg: '#3d1708',
-    iconText: 'SP', iconEmoji: '⚡',
+    iconText: 'SP', iconEmoji: '⚡', lucideIcon: 'Zap',
     tagline: 'Unified Analytics Engine',
     description: 'In-memory distributed processing. Handles batch, micro-batch streaming (Structured Streaming), ML, and graph analytics.',
     capabilities: ['Structured Streaming', 'DataFrame / Dataset API', 'Spark SQL', 'MLlib', 'Delta Lake integration', 'Dynamic partition pruning'],
@@ -143,7 +143,7 @@ export const COMPONENTS = {
   flink: {
     type: 'flink', label: 'Apache Flink', category: 'processing',
     color: '#e6522c', bg: '#3d1508',
-    iconText: 'FL', iconEmoji: '🦊',
+    iconText: 'FL', iconEmoji: '🦊', lucideIcon: 'Wind',
     tagline: 'Stateful Stream Processing',
     description: 'True streaming engine with exactly-once state guarantees. Best for complex CEP, low-latency joins, and stateful transformations.',
     capabilities: ['Event-time processing', 'Watermarks & windows', 'Stateful CEP', 'Exactly-once', 'SQL on streams', 'Flink CDC'],
@@ -153,7 +153,7 @@ export const COMPONENTS = {
   dbt: {
     type: 'dbt', label: 'dbt', category: 'processing',
     color: '#ff694b', bg: '#3d1510',
-    iconText: 'dbt', iconEmoji: '🔨',
+    iconText: 'dbt', iconEmoji: '🔨', lucideIcon: 'Code2',
     tagline: 'SQL Transformation Layer',
     description: 'SQL-first transformation tool. Defines data models as SELECT statements, handles dependencies, tests, and documentation.',
     capabilities: ['Incremental models', 'Ref / Source macros', 'Tests (unique, not_null, custom)', 'Auto-generated docs', 'Snapshots (SCD Type 2)', 'Seeds'],
@@ -163,7 +163,7 @@ export const COMPONENTS = {
   databricks: {
     type: 'databricks', label: 'Databricks', category: 'processing',
     color: '#ff3621', bg: '#3d0d0d',
-    iconText: 'DB', iconEmoji: '🧱',
+    iconText: 'DB', iconEmoji: '🧱', lucideIcon: 'Cpu',
     tagline: 'Unified Data + AI Platform',
     description: 'Managed Spark + Delta Lake platform. Lakehouse architecture — ACID on object storage. Unity Catalog for governance.',
     capabilities: ['Delta Lake ACID', 'Auto Loader (file ingestion)', 'Delta Live Tables', 'MLflow integration', 'Unity Catalog', 'Photon engine'],
@@ -173,7 +173,7 @@ export const COMPONENTS = {
   aws_glue: {
     type: 'aws_glue', label: 'AWS Glue', category: 'processing',
     color: '#ff9900', bg: '#3d2600',
-    iconText: 'GL', iconEmoji: '⚙️',
+    iconText: 'GL', iconEmoji: '⚙️', lucideIcon: 'Settings',
     tagline: 'Serverless ETL / Data Catalog',
     description: 'Fully managed serverless ETL. Glue Data Catalog acts as Hive-compatible metastore. Crawlers auto-discover schema.',
     capabilities: ['Serverless Spark', 'Data Catalog (Hive metastore)', 'Crawlers', 'Glue Studio (visual ETL)', 'DynamicFrames'],
@@ -185,7 +185,7 @@ export const COMPONENTS = {
   airflow: {
     type: 'airflow', label: 'Apache Airflow', category: 'orchestration',
     color: '#017cee', bg: '#001d40',
-    iconText: 'AF', iconEmoji: '🌀',
+    iconText: 'AF', iconEmoji: '🌀', lucideIcon: 'Network',
     tagline: 'Workflow Orchestration',
     description: 'Programmatic workflow orchestration via Python DAGs. Rich operator ecosystem for Spark, dbt, SQL, HTTP, and more.',
     capabilities: ['Python DAGs', '1000+ operators / hooks', 'Dynamic task mapping', 'SLA monitoring', 'XCom for task communication', 'TaskFlow API'],
@@ -195,7 +195,7 @@ export const COMPONENTS = {
   prefect: {
     type: 'prefect', label: 'Prefect', category: 'orchestration',
     color: '#2d6df6', bg: '#0d1f4a',
-    iconText: 'PF', iconEmoji: '📌',
+    iconText: 'PF', iconEmoji: '📌', lucideIcon: 'GitCommit',
     tagline: 'Modern Workflow Orchestration',
     description: 'Python-native orchestration with cloud UI. Flows/Tasks model. Dynamic workflows, automatic retries, and observability.',
     capabilities: ['Python flows/tasks', 'Dynamic tasks at runtime', 'Automatic retries', 'Prefect Cloud UI', 'Deployments on K8s/ECS'],
@@ -205,7 +205,7 @@ export const COMPONENTS = {
   dagster: {
     type: 'dagster', label: 'Dagster', category: 'orchestration',
     color: '#7b68ee', bg: '#1e1a42',
-    iconText: 'DG', iconEmoji: '💎',
+    iconText: 'DG', iconEmoji: '💎', lucideIcon: 'Hexagon',
     tagline: 'Asset-Oriented Orchestration',
     description: 'Asset-centric orchestration. Software-defined assets (SDAs) model data lineage. Integrated with dbt, Spark, and Fivetran.',
     capabilities: ['Software-defined assets', 'Asset materialization tracking', 'Partitioned assets', 'Sensors & Schedules', 'Dagster Cloud'],
@@ -217,7 +217,7 @@ export const COMPONENTS = {
   s3: {
     type: 's3', label: 'AWS S3', category: 'storage',
     color: '#569a31', bg: '#1a2e0d',
-    iconText: 'S3', iconEmoji: '🪣',
+    iconText: 'S3', iconEmoji: '🪣', lucideIcon: 'Archive',
     tagline: 'Object Storage / Data Lake',
     description: 'Scalable object storage, the foundation of most data lakes. Stores raw, bronze, silver, and gold layer data.',
     capabilities: ['Unlimited scale', 'S3 Intelligent-Tiering', 'S3 Event Notifications', 'Server-side encryption', 'Lifecycle policies', 'S3 Select'],
@@ -227,7 +227,7 @@ export const COMPONENTS = {
   adls: {
     type: 'adls', label: 'Azure Data Lake', category: 'storage',
     color: '#0078d4', bg: '#001c3d',
-    iconText: 'ADL', iconEmoji: '🌊',
+    iconText: 'ADL', iconEmoji: '🌊', lucideIcon: 'Cloud',
     tagline: 'Azure Object Storage',
     description: 'Azure Data Lake Storage Gen2. Hierarchical namespace on top of Azure Blob Storage for big data analytics.',
     capabilities: ['Hierarchical namespace', 'POSIX-compatible ACLs', 'Azure AD integration', 'Lifecycle management'],
@@ -237,7 +237,7 @@ export const COMPONENTS = {
   delta_lake: {
     type: 'delta_lake', label: 'Delta Lake', category: 'storage',
     color: '#003366', bg: '#000d1a',
-    iconText: 'Δ', iconEmoji: '△',
+    iconText: 'Δ', iconEmoji: '△', lucideIcon: 'GitFork',
     tagline: 'ACID Table Format on Object Storage',
     description: 'Open-source storage layer with ACID transactions on data lakes. DML operations, time travel, and schema enforcement.',
     capabilities: ['ACID transactions', 'Time travel (versioning)', 'Schema enforcement', 'MERGE (upserts)', 'Z-ORDER clustering', 'Deletion vectors'],
@@ -247,7 +247,7 @@ export const COMPONENTS = {
   iceberg: {
     type: 'iceberg', label: 'Apache Iceberg', category: 'storage',
     color: '#4a90d9', bg: '#0f2035',
-    iconText: 'ICE', iconEmoji: '🧊',
+    iconText: 'ICE', iconEmoji: '🧊', lucideIcon: 'Triangle',
     tagline: 'Open Table Format',
     description: 'Open table format for huge analytic datasets. Supports multiple engines (Spark, Flink, Trino, Presto). Netflix-born.',
     capabilities: ['ACID transactions', 'Hidden partitioning', 'Time travel & rollback', 'Schema evolution', 'Row-level deletes', 'Engine-agnostic'],
@@ -257,7 +257,7 @@ export const COMPONENTS = {
   hdfs: {
     type: 'hdfs', label: 'HDFS', category: 'storage',
     color: '#fcba03', bg: '#332800',
-    iconText: 'HDFS', iconEmoji: '💾',
+    iconText: 'HDFS', iconEmoji: '💾', lucideIcon: 'Server',
     tagline: 'Hadoop Distributed File System',
     description: 'Classic distributed storage for on-prem Hadoop clusters. Block-based, 3x replication, optimized for large sequential reads.',
     capabilities: ['3x block replication', 'NameNode + DataNodes', 'Rack awareness', 'HDFS Federation', 'Snapshots'],
@@ -269,7 +269,7 @@ export const COMPONENTS = {
   snowflake: {
     type: 'snowflake', label: 'Snowflake', category: 'warehouse',
     color: '#29b5e8', bg: '#072535',
-    iconText: '❄', iconEmoji: '❄️',
+    iconText: '❄', iconEmoji: '❄️', lucideIcon: 'Snowflake',
     tagline: 'Cloud Data Warehouse',
     description: 'Elastic cloud data warehouse with separate compute and storage. Multi-cluster warehouse, zero-copy cloning, time travel.',
     capabilities: ['Virtual warehouses (separate compute)', 'Time Travel (90 days)', 'Zero-copy cloning', 'Data sharing', 'Snowpipe (streaming)', 'Iceberg tables'],
@@ -279,7 +279,7 @@ export const COMPONENTS = {
   bigquery: {
     type: 'bigquery', label: 'BigQuery', category: 'warehouse',
     color: '#4285f4', bg: '#0d1f4a',
-    iconText: 'BQ', iconEmoji: '🔵',
+    iconText: 'BQ', iconEmoji: '🔵', lucideIcon: 'Search',
     tagline: 'Google Serverless Data Warehouse',
     description: 'Fully managed, serverless data warehouse. Slot-based compute, columnar Capacitor storage, BI Engine for in-memory analytics.',
     capabilities: ['Serverless (no clusters)', 'BI Engine (in-memory)', 'BigQuery ML', 'Streaming inserts', 'Partitioned & clustered tables', 'Omni (multi-cloud)'],
@@ -289,7 +289,7 @@ export const COMPONENTS = {
   redshift: {
     type: 'redshift', label: 'AWS Redshift', category: 'warehouse',
     color: '#8c4fff', bg: '#1e0d40',
-    iconText: 'RS', iconEmoji: '🔴',
+    iconText: 'RS', iconEmoji: '🔴', lucideIcon: 'CircleDot',
     tagline: 'AWS Cloud Data Warehouse',
     description: 'AWS columnar MPP warehouse. Leader + Compute nodes. Redshift Spectrum queries S3 directly. RA3 nodes with managed storage.',
     capabilities: ['Columnar MPP', 'Redshift Spectrum (S3 queries)', 'RA3 managed storage', 'AQUA accelerator', 'Materialized views', 'Concurrency scaling'],
@@ -299,7 +299,7 @@ export const COMPONENTS = {
   azure_synapse: {
     type: 'azure_synapse', label: 'Azure Synapse', category: 'warehouse',
     color: '#0078d4', bg: '#001c3d',
-    iconText: 'SYN', iconEmoji: '💙',
+    iconText: 'SYN', iconEmoji: '💙', lucideIcon: 'Layout',
     tagline: 'Azure Analytics Platform',
     description: 'Unified analytics service combining data warehousing (Dedicated SQL) and big data (Spark pools). Integrates with ADLS.',
     capabilities: ['Dedicated SQL Pool (MPP)', 'Serverless SQL (Synapse Link)', 'Apache Spark pools', 'Pipeline integration', 'Synapse Link for Cosmos DB'],
@@ -311,7 +311,7 @@ export const COMPONENTS = {
   tableau: {
     type: 'tableau', label: 'Tableau', category: 'serving',
     color: '#e8762c', bg: '#3d1e0a',
-    iconText: 'TAB', iconEmoji: '📊',
+    iconText: 'TAB', iconEmoji: '📊', lucideIcon: 'BarChart',
     tagline: 'Visual Analytics / BI',
     description: 'Drag-and-drop visual analytics platform. Direct connections to warehouses, extracts for performance, and Tableau Prep for ETL.',
     capabilities: ['Live + Extract connections', 'Tableau Prep (ETL)', 'LOD expressions', 'Tableau Server / Cloud', 'Ask Data (NLQ)', 'Pulse (AI insights)'],
@@ -321,7 +321,7 @@ export const COMPONENTS = {
   looker: {
     type: 'looker', label: 'Looker', category: 'serving',
     color: '#4285f4', bg: '#0d1f4a',
-    iconText: 'LOK', iconEmoji: '🔍',
+    iconText: 'LOK', iconEmoji: '🔍', lucideIcon: 'Eye',
     tagline: 'BI / Semantic Layer',
     description: 'Google-owned BI tool with LookML semantic layer. Defines metrics once in code, explores and dashboards reuse the layer.',
     capabilities: ['LookML semantic layer', 'Version-controlled metrics', 'Looker API', 'Looker Studio integration', 'Looker Blocks (pre-built models)'],
@@ -331,7 +331,7 @@ export const COMPONENTS = {
   power_bi: {
     type: 'power_bi', label: 'Power BI', category: 'serving',
     color: '#f2c811', bg: '#332b00',
-    iconText: 'PBI', iconEmoji: '💛',
+    iconText: 'PBI', iconEmoji: '💛', lucideIcon: 'BarChart2',
     tagline: 'Microsoft BI Platform',
     description: 'Microsoft BI tool deeply integrated with Azure ecosystem. Power Query for ETL, DAX for calculations, Premium for enterprise scale.',
     capabilities: ['DirectQuery + Import modes', 'Power Query (M language)', 'DAX calculations', 'Power BI Embedded', 'AI visuals', 'Dataflows (reusable ETL)'],
@@ -341,7 +341,7 @@ export const COMPONENTS = {
   superset: {
     type: 'superset', label: 'Apache Superset', category: 'serving',
     color: '#e43e2b', bg: '#3d0d0a',
-    iconText: 'SUP', iconEmoji: '📈',
+    iconText: 'SUP', iconEmoji: '📈', lucideIcon: 'TrendingUp',
     tagline: 'Open-source BI / Dashboards',
     description: 'Open-source business intelligence web application. Rich visualization library, SQL Lab for ad-hoc queries, and semantic layer.',
     capabilities: ['50+ visualization types', 'SQL Lab (ad-hoc)', 'Row-level security', 'Dataset + Metrics layer', 'Alerts & Reports', 'Embedded dashboards'],
@@ -351,7 +351,7 @@ export const COMPONENTS = {
   redis: {
     type: 'redis', label: 'Redis', category: 'serving',
     color: '#d82c20', bg: '#3d0b08',
-    iconText: 'RDS', iconEmoji: '🔴',
+    iconText: 'RDS', iconEmoji: '🔴', lucideIcon: 'Layers',
     tagline: 'In-Memory Cache / Feature Store',
     description: 'In-memory data structure store. Used as cache layer, session store, feature store for ML serving, and real-time leaderboards.',
     capabilities: ['Sub-millisecond latency', 'Data structures: Hash/List/Set/SortedSet', 'Pub/Sub', 'Redis Streams', 'Redis JSON', 'Redis Stack (search, time-series)'],
@@ -363,7 +363,7 @@ export const COMPONENTS = {
   docker: {
     type: 'docker', label: 'Docker', category: 'infra',
     color: '#0db7ed', bg: '#052535',
-    iconText: 'DCK', iconEmoji: '🐳',
+    iconText: 'DCK', iconEmoji: '🐳', lucideIcon: 'Box',
     tagline: 'Container Runtime / Packaging',
     description: 'Containerization platform that packages pipeline services and dependencies into portable images. Foundation for Kubernetes-based data platforms.',
     capabilities: ['Container isolation', 'Docker Compose (multi-service)', 'Image layering + caching', 'Volume mounts for data', 'Health checks', 'Bridge / overlay networks'],
@@ -375,7 +375,7 @@ export const COMPONENTS = {
   anthropic: {
     type: 'anthropic', label: 'Anthropic SDK', category: 'ai_llm',
     color: '#d4894a', bg: '#2a1a0a',
-    iconText: 'ANT', iconEmoji: '🤖',
+    iconText: 'ANT', iconEmoji: '🤖', lucideIcon: 'Brain',
     tagline: 'Claude LLM Inference',
     description: 'Anthropic Python/JS SDK for Claude API. Used in pipelines for text classification, entity extraction, summarization, and structured data generation.',
     capabilities: ['Claude 3.5 / Claude 3 Opus', 'Tool use (function calling)', 'Structured JSON output', 'Prompt caching (up to 90% cost reduction)', 'Streaming responses', 'Vision (image inputs)'],
@@ -385,7 +385,7 @@ export const COMPONENTS = {
   openai: {
     type: 'openai', label: 'OpenAI SDK', category: 'ai_llm',
     color: '#10a37f', bg: '#05201a',
-    iconText: 'OAI', iconEmoji: '⚡',
+    iconText: 'OAI', iconEmoji: '⚡', lucideIcon: 'Bot',
     tagline: 'GPT / Embeddings Inference',
     description: 'OpenAI Python/JS SDK for GPT-4o, embeddings, and assistants. Commonly used for embeddings pipelines, classification, and RAG retrieval layers.',
     capabilities: ['GPT-4o / GPT-4 Turbo', 'text-embedding-3-large (3072 dims)', 'Structured outputs (JSON mode)', 'Function calling', 'Assistants API (stateful)', 'Batch API (50% cost reduction)'],
@@ -403,6 +403,10 @@ export const COMPONENTS = {
     internalDesc: '',
   },
 };
+
+// Single source of truth for type strings — shared/component-types.json mirrors this.
+// When adding a component: update COMPONENTS above AND shared/component-types.json.
+export const COMPONENT_TYPES = Object.keys(COMPONENTS);
 
 export const getCategory = (categoryId) =>
   CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[0];
