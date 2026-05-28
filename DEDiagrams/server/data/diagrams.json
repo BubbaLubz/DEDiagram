@@ -1,0 +1,349 @@
+[
+  {
+    "id": "a5e04d00-9976-4cab-9d9a-b05ee61fd4c7",
+    "name": "Cal Poly Schedule Helper",
+    "description": "",
+    "nodes": [
+      {
+        "id": "n1",
+        "type": "component",
+        "position": {
+          "x": 80,
+          "y": 60
+        },
+        "data": {
+          "componentType": "files_s3",
+          "label": "Transcript PDF Upload",
+          "notes": "Student uploads PDF transcript via UI; stored in S3 bucket as raw input, triggering downstream parse pipeline"
+        },
+        "width": 200,
+        "height": 122,
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "n2",
+        "type": "component",
+        "position": {
+          "x": 380,
+          "y": 70
+        },
+        "data": {
+          "componentType": "openai",
+          "label": "LLM/OCR Transcript Parser",
+          "notes": "GPT-4o Vision extracts structured course records (course code, grade, quarter) from raw transcript PDF via OCR + LLM parsing"
+        },
+        "width": 200,
+        "height": 122,
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "n3",
+        "type": "component",
+        "position": {
+          "x": 80,
+          "y": 350
+        },
+        "data": {
+          "componentType": "prefect",
+          "label": "Pipeline Orchestrator",
+          "notes": "Prefect orchestrates the full per-student pipeline: transcript parse → requirement diff → parallel scrape enrichment → filter → rank"
+        },
+        "width": 200,
+        "height": 122,
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "n4",
+        "type": "component",
+        "position": {
+          "x": 680,
+          "y": 70
+        },
+        "data": {
+          "componentType": "postgresql",
+          "label": "Completed Courses Store",
+          "notes": "Persists each student's parsed transcript as structured rows: student_id, course_code, grade, quarter_taken for downstream diffing"
+        },
+        "width": 200,
+        "height": 122
+      },
+      {
+        "id": "n5",
+        "type": "component",
+        "position": {
+          "x": 680,
+          "y": 220
+        },
+        "data": {
+          "componentType": "mongodb",
+          "label": "Major Flowchart Graph DB",
+          "notes": "Stores prerequisite graphs per major as JSON documents — nodes are courses, edges are prerequisite relationships for requirement resolution"
+        },
+        "width": 200,
+        "height": 122
+      },
+      {
+        "id": "n6",
+        "type": "component",
+        "position": {
+          "x": 980,
+          "y": 197.5
+        },
+        "data": {
+          "componentType": "flink",
+          "label": "Requirement Diff Engine",
+          "notes": "Traverses prerequisite graph against student's completed courses set to produce ordered list of remaining required and elective courses"
+        },
+        "width": 200,
+        "height": 122,
+        "selected": false
+      },
+      {
+        "id": "n7",
+        "type": "component",
+        "position": {
+          "x": 980,
+          "y": 347.5
+        },
+        "data": {
+          "componentType": "rest_api",
+          "label": "Cal Poly PASS Scraper",
+          "notes": "Polls Cal Poly PASS system REST endpoints for live section data: meeting times, days, room, available seats, and instructor name per course"
+        },
+        "width": 200,
+        "height": 122,
+        "selected": true,
+        "dragging": false
+      },
+      {
+        "id": "n8",
+        "type": "component",
+        "position": {
+          "x": 980,
+          "y": 497.5
+        },
+        "data": {
+          "componentType": "rest_api",
+          "label": "PolyRatings Scraper",
+          "notes": "Scrapes PolyRatings.com for professor quality scores, difficulty ratings, and review counts indexed by instructor name"
+        },
+        "width": 200,
+        "height": 122,
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "n9",
+        "type": "component",
+        "position": {
+          "x": 1280,
+          "y": 370
+        },
+        "data": {
+          "componentType": "spark",
+          "label": "Section Enrichment Join",
+          "notes": "Joins PASS section feed with PolyRatings data on instructor_name, producing one enriched section object per course with rating + availability"
+        },
+        "width": 200,
+        "height": 122
+      },
+      {
+        "id": "n10",
+        "type": "component",
+        "position": {
+          "x": 1580,
+          "y": 370
+        },
+        "data": {
+          "componentType": "dbt",
+          "label": "Prerequisite Filter + Ranker",
+          "notes": "SQL transforms remove sections with unmet prerequisites, then score remaining sections by professor rating, unit count, and user-defined time/day filters"
+        },
+        "width": 200,
+        "height": 122,
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "n11",
+        "type": "component",
+        "position": {
+          "x": 1880,
+          "y": 370
+        },
+        "data": {
+          "componentType": "redis",
+          "label": "Ranked Results Cache",
+          "notes": "Caches per-student ranked course list with short TTL for fast UI reads; invalidated when transcript or PASS data updates"
+        },
+        "width": 200,
+        "height": 122
+      },
+      {
+        "id": "n12",
+        "type": "component",
+        "position": {
+          "x": 2180,
+          "y": 370
+        },
+        "data": {
+          "componentType": "superset",
+          "label": "Scheduling Assistant UI",
+          "notes": "Interactive course selection interface — renders ranked, filterable section list with professor ratings, seat counts, and schedule conflict detection"
+        },
+        "width": 200,
+        "height": 122,
+        "selected": false,
+        "dragging": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n1",
+        "target": "n2",
+        "type": "labeled",
+        "data": {
+          "label": "raw PDF bytes",
+          "edgeType": "batch"
+        }
+      },
+      {
+        "id": "e2",
+        "source": "n2",
+        "target": "n4",
+        "type": "labeled",
+        "data": {
+          "label": "structured course records",
+          "edgeType": "api"
+        }
+      },
+      {
+        "id": "e3",
+        "source": "n3",
+        "target": "n2",
+        "type": "labeled",
+        "data": {
+          "label": "trigger parse job",
+          "edgeType": "event"
+        }
+      },
+      {
+        "id": "e4",
+        "source": "n3",
+        "target": "n6",
+        "type": "labeled",
+        "data": {
+          "label": "trigger requirement diff",
+          "edgeType": "event"
+        }
+      },
+      {
+        "id": "e5",
+        "source": "n3",
+        "target": "n7",
+        "type": "labeled",
+        "data": {
+          "label": "trigger PASS scrape",
+          "edgeType": "event"
+        }
+      },
+      {
+        "id": "e6",
+        "source": "n3",
+        "target": "n8",
+        "type": "labeled",
+        "data": {
+          "label": "trigger ratings scrape",
+          "edgeType": "event"
+        }
+      },
+      {
+        "id": "e7",
+        "source": "n4",
+        "target": "n6",
+        "type": "labeled",
+        "data": {
+          "label": "completed course set",
+          "edgeType": "sql"
+        }
+      },
+      {
+        "id": "e8",
+        "source": "n5",
+        "target": "n6",
+        "type": "labeled",
+        "data": {
+          "label": "prerequisite graph query",
+          "edgeType": "api"
+        }
+      },
+      {
+        "id": "e9",
+        "source": "n6",
+        "target": "n9",
+        "type": "labeled",
+        "data": {
+          "label": "remaining course list",
+          "edgeType": "streaming"
+        }
+      },
+      {
+        "id": "e10",
+        "source": "n7",
+        "target": "n9",
+        "type": "labeled",
+        "data": {
+          "label": "live section feed",
+          "edgeType": "api"
+        }
+      },
+      {
+        "id": "e11",
+        "source": "n8",
+        "target": "n9",
+        "type": "labeled",
+        "data": {
+          "label": "professor ratings feed",
+          "edgeType": "api"
+        }
+      },
+      {
+        "id": "e12",
+        "source": "n9",
+        "target": "n10",
+        "type": "labeled",
+        "data": {
+          "label": "enriched section objects",
+          "edgeType": "batch"
+        }
+      },
+      {
+        "id": "e13",
+        "source": "n10",
+        "target": "n11",
+        "type": "labeled",
+        "data": {
+          "label": "ranked course list",
+          "edgeType": "sql"
+        }
+      },
+      {
+        "id": "e14",
+        "source": "n11",
+        "target": "n12",
+        "type": "labeled",
+        "data": {
+          "label": "cached ranked results",
+          "edgeType": "api"
+        }
+      }
+    ],
+    "isTemplate": true,
+    "createdAt": "2026-05-12T18:02:16.809Z",
+    "updatedAt": "2026-05-12T18:02:16.809Z"
+  }
+]
