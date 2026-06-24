@@ -3,14 +3,18 @@ import { Package, Layout, BookOpen, Trash2, FolderOpen, Clock } from 'lucide-rea
 import { getComponentsByCategory } from '../data/componentLibrary';
 import { BUILT_IN_TEMPLATES } from '../data/templates';
 import useStore from '../store';
+import { useTheme } from '../theme';
 
 const TABS = [
   { id: 'components', label: 'Components', icon: Package },
-  { id: 'templates', label: 'Templates', icon: Layout },
-  { id: 'saved', label: 'Saved', icon: BookOpen },
+  { id: 'templates',  label: 'Templates',  icon: Layout   },
+  { id: 'saved',      label: 'Saved',      icon: BookOpen },
 ];
 
 function DraggableComponent({ comp }) {
+  const P = useTheme();
+  const [hover, setHover] = useState(false);
+
   const handleDragStart = (e) => {
     e.dataTransfer.setData('application/de-component', JSON.stringify({ componentType: comp.type, label: comp.label }));
     e.dataTransfer.effectAllowed = 'copy';
@@ -20,23 +24,38 @@ function DraggableComponent({ comp }) {
     <div
       draggable
       onDragStart={handleDragStart}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing transition-all duration-150 hover:bg-slate-700/50 group border border-transparent hover:border-slate-600"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '7px 12px', cursor: 'grab', borderRadius: 4,
+        background: hover ? P.hover : 'transparent',
+        border: `1px solid ${hover ? P.divider : 'transparent'}`,
+        transition: 'all 0.12s',
+      }}
     >
-      <div
-        className="w-7 h-7 rounded-md flex-shrink-0 flex items-center justify-center text-sm"
-        style={{ background: comp.bg || '#1c2333', border: `1px solid ${comp.color}44` }}
-      >
+      <div style={{
+        width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+        background: comp.bg || P.surface,
+        border: `1px solid ${comp.color ? comp.color + '44' : P.divider}`,
+      }}>
         {comp.iconEmoji}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-slate-200 group-hover:text-white truncate">{comp.label}</div>
-        <div className="text-xs text-slate-500 truncate">{comp.tagline}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: P.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {comp.label}
+        </div>
+        <div style={{ fontSize: 11, color: P.faint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {comp.tagline}
+        </div>
       </div>
     </div>
   );
 }
 
 function ComponentsTab() {
+  const P = useTheme();
   const [expanded, setExpanded] = useState(new Set(['source', 'streaming', 'processing']));
   const categories = getComponentsByCategory().filter(cat => cat.id !== 'custom');
 
@@ -47,34 +66,45 @@ function ComponentsTab() {
   };
 
   return (
-    <div className="overflow-y-auto flex-1 pb-4">
-      {/* Pinned custom box */}
-      <div className="px-2 pt-2 pb-1 border-b border-slate-700/60 mb-1">
+    <div style={{ overflowY: 'auto', flex: 1, paddingBottom: 16 }}>
+      <div style={{ padding: '8px 8px 6px', borderBottom: `1px solid ${P.divider}`, marginBottom: 4 }}>
         <DraggableComponent comp={{
           type: 'custom_box', label: 'Custom Box', tagline: 'Blank box — name & describe freely',
-          color: '#64748b', bg: '#1c2333', iconEmoji: '🔲',
+          color: '#9B8B7A', bg: P.surface, iconEmoji: '🔲',
         }}/>
       </div>
-      <p className="text-xs text-slate-500 px-4 pt-2 pb-2">Drag components onto the canvas</p>
+      <p style={{ fontSize: 11, color: P.faint, padding: '8px 16px 6px' }}>Drag components onto the canvas</p>
       {categories.map(cat => (
-        <div key={cat.id} className="mb-1">
+        <div key={cat.id} style={{ marginBottom: 2 }}>
           <button
             onClick={() => toggle(cat.id)}
-            className="w-full flex items-center justify-between px-4 py-2 hover:bg-slate-700/30 transition-colors"
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '7px 16px', background: 'none', border: 'none', cursor: 'pointer',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = P.hover}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ background: cat.color }}/>
-              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: cat.color }}>{cat.label}</span>
-              <span className="text-xs text-slate-600">({cat.components.length})</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }}/>
+              <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: cat.color }}>
+                {cat.label}
+              </span>
+              <span style={{ fontSize: 11, color: P.faint }}>({cat.components.length})</span>
             </div>
             <svg
-              className={`w-3 h-3 text-slate-500 transition-transform duration-200 ${expanded.has(cat.id) ? 'rotate-180' : ''}`}
+              style={{
+                width: 12, height: 12, color: P.faint,
+                transform: expanded.has(cat.id) ? 'rotate(180deg)' : 'rotate(0)',
+                transition: 'transform 0.2s',
+              }}
               fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
             </svg>
           </button>
           {expanded.has(cat.id) && (
-            <div className="px-2 pb-1">
+            <div style={{ padding: '0 8px 4px' }}>
               {cat.components.map(comp => (
                 <DraggableComponent key={comp.type} comp={comp}/>
               ))}
@@ -87,40 +117,52 @@ function ComponentsTab() {
 }
 
 function TemplatesTab() {
+  const P = useTheme();
   const { loadTemplate } = useStore();
 
   return (
-    <div className="overflow-y-auto flex-1 p-3 space-y-3">
-      <p className="text-xs text-slate-500 px-1 pb-1">Click to load a starter architecture</p>
+    <div style={{ overflowY: 'auto', flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <p style={{ fontSize: 11, color: P.faint, padding: '0 4px 4px' }}>Click to load a starter architecture</p>
       {BUILT_IN_TEMPLATES.map(tpl => (
-        <div
-          key={tpl.id}
-          onClick={() => loadTemplate(tpl)}
-          className="rounded-xl border border-slate-700 p-3.5 cursor-pointer hover:border-slate-500 transition-all duration-200 group hover:bg-slate-700/20"
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className="w-3 h-full min-h-10 rounded-full flex-shrink-0"
-              style={{ background: tpl.color, width: 4, marginTop: 2 }}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold text-slate-200 group-hover:text-white">{tpl.name}</h3>
-                <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: tpl.color + '22', color: tpl.color }}>
-                  {tpl.category}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">{tpl.description}</p>
-              <p className="text-xs text-slate-600 mt-1.5">{tpl.nodes.length} components · {tpl.edges.length} connections</p>
-            </div>
-          </div>
-        </div>
+        <TemplateCard key={tpl.id} tpl={tpl} onLoad={() => loadTemplate(tpl)}/>
       ))}
     </div>
   );
 }
 
+function TemplateCard({ tpl, onLoad }) {
+  const P = useTheme();
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onClick={onLoad}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        border: `1px solid ${P.divider}`,
+        borderLeft: `3px solid ${tpl.color}`,
+        padding: '12px 14px', cursor: 'pointer',
+        background: hover ? P.hover : P.surface,
+        transition: 'all 0.15s', borderRadius: 3,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: P.text }}>{tpl.name}</h3>
+        <span style={{
+          fontSize: 10, padding: '2px 8px', borderRadius: 2, flexShrink: 0,
+          background: tpl.color + '22', color: tpl.color, fontWeight: 500,
+        }}>
+          {tpl.category}
+        </span>
+      </div>
+      <p style={{ fontSize: 12, color: P.muted, lineHeight: 1.5, marginBottom: 6 }}>{tpl.description}</p>
+      <p style={{ fontSize: 11, color: P.faint }}>{tpl.nodes.length} components · {tpl.edges.length} connections</p>
+    </div>
+  );
+}
+
 function SavedTab() {
+  const P = useTheme();
   const { savedDiagrams, loadDiagram, deleteDiagram, fetchSavedDiagrams } = useStore();
   const [loading, setLoading] = useState(false);
 
@@ -142,101 +184,129 @@ function SavedTab() {
 
   if (savedDiagrams.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <FolderOpen size={32} className="text-slate-600 mb-3"/>
-        <p className="text-sm text-slate-500 mb-1">No saved diagrams yet</p>
-        <p className="text-xs text-slate-600">Use Save (Ctrl+S) to save your work</p>
-        <button onClick={handleRefresh} className="mt-4 text-xs text-slate-500 hover:text-slate-300 transition-colors">
-          {loading ? 'Loading...' : 'Refresh'}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center' }}>
+        <FolderOpen size={32} style={{ color: P.faint, marginBottom: 12 }}/>
+        <p style={{ fontSize: 13, color: P.muted, marginBottom: 4 }}>No saved diagrams yet</p>
+        <p style={{ fontSize: 12, color: P.faint }}>Use Save (Ctrl+S) to save your work</p>
+        <button
+          onClick={handleRefresh}
+          style={{ marginTop: 16, fontSize: 12, color: P.muted, background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          {loading ? 'Loading…' : 'Refresh'}
         </button>
       </div>
     );
   }
 
   return (
-    <div className="overflow-y-auto flex-1 p-3 space-y-2">
-      <div className="flex items-center justify-between px-1 pb-1">
-        <p className="text-xs text-slate-500">{savedDiagrams.length} diagram{savedDiagrams.length !== 1 ? 's' : ''} saved</p>
-        <button onClick={handleRefresh} className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
-          {loading ? '...' : 'Refresh'}
+    <div style={{ overflowY: 'auto', flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 4px' }}>
+        <p style={{ fontSize: 11, color: P.faint }}>{savedDiagrams.length} diagram{savedDiagrams.length !== 1 ? 's' : ''} saved</p>
+        <button
+          onClick={handleRefresh}
+          style={{ fontSize: 11, color: P.muted, background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          {loading ? '…' : 'Refresh'}
         </button>
       </div>
-      {savedDiagrams.map(d => (
-        <div
-          key={d.id}
-          onClick={() => handleLoad(d.id)}
-          className="rounded-xl border border-slate-700 p-3 cursor-pointer hover:border-slate-500 transition-all group hover:bg-slate-700/20"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-slate-200 group-hover:text-white truncate">{d.name}</h3>
-                {d.isTemplate && (
-                  <span className="text-xs px-1.5 py-0.5 rounded-full bg-purple-900/40 text-purple-400 border border-purple-700 flex-shrink-0">template</span>
-                )}
-              </div>
-              {d.description && <p className="text-xs text-slate-500 mt-0.5 truncate">{d.description}</p>}
-              <div className="flex items-center gap-1 mt-1.5">
-                <Clock size={10} className="text-slate-600"/>
-                <span className="text-xs text-slate-600">{new Date(d.updatedAt).toLocaleDateString()}</span>
-              </div>
-            </div>
-            <button
-              onClick={(e) => handleDelete(e, d.id)}
-              className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-900/40 text-slate-500 hover:text-red-400 transition-all flex-shrink-0"
-            >
-              <Trash2 size={12}/>
-            </button>
+      {savedDiagrams.map(d => <SavedCard key={d.id} d={d} onLoad={() => handleLoad(d.id)} onDelete={(e) => handleDelete(e, d.id)}/>)}
+    </div>
+  );
+}
+
+function SavedCard({ d, onLoad, onDelete }) {
+  const P = useTheme();
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onClick={onLoad}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        border: `1px solid ${hover ? P.amber + '66' : P.divider}`,
+        padding: '10px 12px', cursor: 'pointer', borderRadius: 3,
+        background: hover ? P.hover : P.surface,
+        transition: 'all 0.15s',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <h3 style={{ fontSize: 13, fontWeight: 500, color: P.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {d.name}
+            </h3>
+            {d.isTemplate && (
+              <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, background: P.amber + '22', color: P.amber, flexShrink: 0 }}>
+                template
+              </span>
+            )}
+          </div>
+          {d.description && (
+            <p style={{ fontSize: 12, color: P.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>
+              {d.description}
+            </p>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Clock size={10} style={{ color: P.faint }}/>
+            <span style={{ fontSize: 11, color: P.faint }}>
+              {new Date(d.updatedAt).toLocaleDateString()}
+            </span>
           </div>
         </div>
-      ))}
+        <button
+          onClick={onDelete}
+          style={{
+            padding: 6, borderRadius: 3, border: 'none', cursor: 'pointer',
+            opacity: hover ? 1 : 0, background: 'none',
+            color: '#B03A2E', transition: 'opacity 0.15s',
+          }}
+        >
+          <Trash2 size={12}/>
+        </button>
+      </div>
     </div>
   );
 }
 
 export default function LeftSidebar() {
+  const P = useTheme();
   const { activeTab, setActiveTab } = useStore();
 
   return (
-    <div className="h-full flex flex-col border-r border-slate-700" style={{ width: 280, background: '#161b22' }}>
+    <div style={{ width: 280, height: '100%', display: 'flex', flexDirection: 'column', background: P.bg, borderRight: `1px solid ${P.divider}`, flexShrink: 0 }}>
       {/* Logo */}
-      <div className="px-4 py-3 border-b border-slate-700 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
-            <svg viewBox="0 0 20 20" className="w-4 h-4" fill="white">
-              <path d="M3 4h4v3H3zm5 0h4v3H8zm5 0h4v3h-4zM3 10h4v3H3zm10 0h4v3h-4zM8 13h4v4H8z"/>
-            </svg>
-          </div>
-          <div>
-            <span className="text-sm font-bold text-white">DE Diagrams</span>
-            <p className="text-xs text-slate-500" style={{ lineHeight: 1 }}>Pipeline Visualizer</p>
-          </div>
-        </div>
+      <div style={{ padding: '10px 16px', borderBottom: `1px solid ${P.divider}`, flexShrink: 0 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: P.text }}>
+          <span style={{ color: P.amber }}>DE</span>Diagram
+        </span>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-700 flex-shrink-0">
+      <div style={{ display: 'flex', borderBottom: `1px solid ${P.divider}`, flexShrink: 0 }}>
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
-            className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-xs font-medium transition-colors border-b-2 ${
-              activeTab === id
-                ? 'text-indigo-400 border-indigo-500'
-                : 'text-slate-500 border-transparent hover:text-slate-300'
-            }`}
+            style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              padding: '9px 4px', fontSize: 11, fontWeight: 500, cursor: 'pointer',
+              background: 'none', border: 'none',
+              borderBottom: `2px solid ${activeTab === id ? P.amber : 'transparent'}`,
+              color: activeTab === id ? P.amber : P.muted,
+              transition: 'all 0.15s',
+            }}
           >
-            <Icon size={14}/>
+            <Icon size={13}/>
             {label}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {activeTab === 'components' && <ComponentsTab/>}
-        {activeTab === 'templates' && <TemplatesTab/>}
-        {activeTab === 'saved' && <SavedTab/>}
+        {activeTab === 'templates'  && <TemplatesTab/>}
+        {activeTab === 'saved'      && <SavedTab/>}
       </div>
     </div>
   );

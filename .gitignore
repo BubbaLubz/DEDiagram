@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Runtime data files (flat-file DB — not source code)
+DEDiagrams/server/data/users.json
+DEDiagrams/server/data/diagrams.json
+
+# Reference images / design assets (not source code)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*

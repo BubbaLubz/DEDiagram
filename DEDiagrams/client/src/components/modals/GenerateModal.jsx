@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Wand2, Loader2, CheckCircle, AlertCircle, ChevronDown, ChevronRight, KeyRound, PencilLine, Sparkles } from 'lucide-react';
+import { X, Wand2, Loader2, CheckCircle, AlertCircle, PencilLine, Sparkles } from 'lucide-react';
 import useStore from '../../store';
 
 const GENERATE_PROMPTS = [
@@ -54,8 +54,6 @@ export default function GenerateModal() {
   const { isGenerateModalOpen, closeGenerateModal, loadTemplate, nodes, edges } = useStore();
   const [mode, setMode] = useState('generate'); // 'generate' | 'edit'
   const [prompt, setPrompt] = useState('');
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('de_anthropic_key') || '');
-  const [showKeyInput, setShowKeyInput] = useState(!localStorage.getItem('de_anthropic_key'));
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
   const [statusMsg, setStatusMsg] = useState('');
   const [streamingText, setStreamingText] = useState('');
@@ -67,12 +65,6 @@ export default function GenerateModal() {
 
   if (!isGenerateModalOpen) return null;
 
-  const saveKey = (key) => {
-    setApiKey(key);
-    if (key.trim()) localStorage.setItem('de_anthropic_key', key.trim());
-    else localStorage.removeItem('de_anthropic_key');
-  };
-
   const handleModeSwitch = (newMode) => {
     setMode(newMode);
     setPrompt('');
@@ -83,7 +75,6 @@ export default function GenerateModal() {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
-    if (!apiKey.trim()) { setShowKeyInput(true); return; }
     if (mode === 'edit' && !hasCanvas) return;
 
     abortRef.current?.abort();
@@ -97,8 +88,8 @@ export default function GenerateModal() {
 
     const url = mode === 'edit' ? '/api/edit' : '/api/generate';
     const body = mode === 'edit'
-      ? { prompt: prompt.trim(), currentDiagram: { nodes, edges }, apiKey: apiKey.trim() }
-      : { prompt: prompt.trim(), apiKey: apiKey.trim() };
+      ? { prompt: prompt.trim(), currentDiagram: { nodes, edges } }
+      : { prompt: prompt.trim() };
 
     try {
       const response = await fetch(url, {
@@ -287,39 +278,6 @@ export default function GenerateModal() {
             </div>
           </div>
 
-          {/* API Key section */}
-          <div className="border border-slate-700 rounded-xl overflow-hidden">
-            <button
-              onClick={() => setShowKeyInput(!showKeyInput)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-700/30 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <KeyRound size={13} className={apiKey ? 'text-emerald-400' : 'text-slate-500'}/>
-                <span className="text-sm font-medium text-slate-300">Anthropic API Key</span>
-                {apiKey && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-900/40 text-emerald-400 border border-emerald-700">configured</span>
-                )}
-              </div>
-              {showKeyInput ? <ChevronDown size={14} className="text-slate-500"/> : <ChevronRight size={14} className="text-slate-500"/>}
-            </button>
-
-            {showKeyInput && (
-              <div className="px-4 pb-4 border-t border-slate-700 pt-3 space-y-2">
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={e => saveKey(e.target.value)}
-                  placeholder="sk-ant-api03-..."
-                  className="w-full px-3 py-2 rounded-lg border border-slate-600 bg-slate-900 text-white placeholder-slate-600 text-sm font-mono outline-none focus:border-indigo-500 transition-colors"
-                />
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Your key is stored in browser localStorage and sent directly to our local server for API calls. It never leaves your machine.
-                  Get a key at <span className="text-indigo-400">console.anthropic.com</span>
-                </p>
-              </div>
-            )}
-          </div>
-
           {/* Status / Result area */}
           {status !== 'idle' && (
             <div className={`rounded-xl border p-4 ${
@@ -348,7 +306,7 @@ export default function GenerateModal() {
                     </div>
                   )}
                   {status === 'error' && (
-                    <p className="text-xs text-slate-500 mt-1">Check your API key and prompt, then try again.</p>
+                    <p className="text-xs text-slate-500 mt-1">Check your prompt and try again.</p>
                   )}
                 </div>
               </div>

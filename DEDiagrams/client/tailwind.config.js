@@ -4,12 +4,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        canvas: '#0d1117',
-        surface: '#161b22',
-        panel: '#1c2333',
-        border: '#30363d',
-        accent: '#58a6ff',
-        accentHover: '#79b8ff',
+        canvas:      '#1A1714',  // warm dark — diagram background
+        surface:     '#F0EBE3',  // warm light — sidebars / panels
+        panel:       '#EDE9E2',  // warm cream — toolbar / inner cards
+        border:      '#D9D3CB',  // warm divider
+        accent:      '#B87040',  // warm amber
+        accentHover: '#9B6230',
       },
       fontFamily: {
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],

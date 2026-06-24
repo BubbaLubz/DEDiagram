@@ -1,10 +1,20 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import LandingPage from './pages/LandingPage';
+import AppPage from './pages/AppPage';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App/>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/app" element={<AppPage />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );

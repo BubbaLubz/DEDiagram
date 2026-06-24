@@ -1,5 +1,9 @@
 import { applyNodeChanges, applyEdgeChanges, addEdge } from 'reactflow';
 
+// Debounce state for updateNodeData — one snapshot per typing session
+let _nodeDataTimer = null;
+let _nodeDataSnapped = false;
+
 export const createCanvasSlice = (set, get) => ({
   // State
   nodes: [],
@@ -7,14 +11,44 @@ export const createCanvasSlice = (set, get) => ({
   selectedNode: null,
   isDetailOpen: false,
 
+  // Undo history
+  undoStack: [],
+
+  snapshot: () => {
+    const { nodes, edges, drawingStrokes, undoStack } = get();
+    const snap = { nodes, edges, drawingStrokes };
+    const next = [...undoStack, snap];
+    if (next.length > 50) next.shift();
+    set({ undoStack: next });
+  },
+
+  undo: () => {
+    const stack = [...get().undoStack];
+    if (stack.length === 0) return;
+    const snap = stack.pop();
+    // Also clear the debounce flag so a resumed edit gets a fresh snapshot
+    _nodeDataSnapped = false;
+    clearTimeout(_nodeDataTimer);
+    set({ ...snap, undoStack: stack });
+  },
+
   // ReactFlow handlers
   onNodesChange: (changes) => {
+    const needsSnapshot = changes.some(c =>
+      c.type === 'remove' ||
+      (c.type === 'position' && c.dragging === false),
+    );
+    if (needsSnapshot) get().snapshot();
     set({ nodes: applyNodeChanges(changes, get().nodes), isDirty: true });
   },
+
   onEdgesChange: (changes) => {
+    if (changes.some(c => c.type === 'remove')) get().snapshot();
     set({ edges: applyEdgeChanges(changes, get().edges), isDirty: true });
   },
+
   onConnect: (connection) => {
+    get().snapshot();
     set({
       edges: addEdge(
         { ...connection, type: 'labeled', data: { label: 'batch', edgeType: 'batch' } },
@@ -25,10 +59,19 @@ export const createCanvasSlice = (set, get) => ({
   },
 
   addNode: (node) => {
+    get().snapshot();
     set({ nodes: [...get().nodes, node], isDirty: true });
   },
 
   updateNodeData: (nodeId, data) => {
+    // Snapshot once at the start of a typing session, not per keystroke
+    if (!_nodeDataSnapped) {
+      get().snapshot();
+      _nodeDataSnapped = true;
+    }
+    clearTimeout(_nodeDataTimer);
+    _nodeDataTimer = setTimeout(() => { _nodeDataSnapped = false; }, 1500);
+
     const { selectedNode } = get();
     set({
       nodes: get().nodes.map(n => n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n),
@@ -40,6 +83,7 @@ export const createCanvasSlice = (set, get) => ({
   },
 
   updateEdgeData: (edgeId, data) => {
+    get().snapshot();
     set({
       edges: get().edges.map(e => e.id === edgeId ? { ...e, data: { ...e.data, ...data } } : e),
       isDirty: true,
@@ -47,6 +91,7 @@ export const createCanvasSlice = (set, get) => ({
   },
 
   deleteSelected: () => {
+    get().snapshot();
     set({
       nodes: get().nodes.filter(n => !n.selected),
       edges: get().edges.filter(e => !e.selected),

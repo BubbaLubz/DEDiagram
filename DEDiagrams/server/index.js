@@ -1,9 +1,15 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const Anthropic = require('@anthropic-ai/sdk');
+const rateLimit = require('express-rate-limit');
+const session = require('express-session');
+const passport = require('passport');
+const GitHubStrategy = require('passport-github2').Strategy;
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 // Single source of truth for valid component types.
 // To add a component: update shared/component-types.json AND client/src/data/componentLibrary.js.
@@ -15,11 +21,108 @@ const COMPONENT_TYPE_LIST = Object.entries(byCategory)
 
 const app = express();
 const PORT = 3001;
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const DATA_DIR = path.join(__dirname, 'data');
 const DIAGRAMS_FILE = path.join(DATA_DIR, 'diagrams.json');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
-app.use(cors());
+app.use(cors({ origin: CLIENT_URL, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
+
+// ─── Users (flat JSON, swap for a real DB later) ────────────────────────────
+
+if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, JSON.stringify([]));
+const readUsers = () => { try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); } catch { return []; } };
+const writeUsers = (u) => fs.writeFileSync(USERS_FILE, JSON.stringify(u, null, 2));
+
+// ─── Session + Passport ─────────────────────────────────────────────────────
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'dev-secret-change-before-deploying',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  },
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser((user, done) => done(null, user.id));
+passport.deserializeUser((id, done) => {
+  const user = readUsers().find(u => u.id === id);
+  done(null, user || false);
+});
+
+if (process.env.GITHUB_CLIENT_ID) {
+  passport.use(new GitHubStrategy({
+    clientID: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    callbackURL: `${process.env.SERVER_URL || 'http://localhost:3001'}/auth/github/callback`,
+  }, (_accessToken, _refreshToken, profile, done) => {
+    const users = readUsers();
+    let user = users.find(u => u.githubId === profile.id);
+    if (!user) {
+      user = {
+        id: uuidv4(),
+        githubId: profile.id,
+        name: profile.displayName || profile.username,
+        username: profile.username,
+        avatar: profile.photos?.[0]?.value || null,
+        createdAt: new Date().toISOString(),
+      };
+      users.push(user);
+      writeUsers(users);
+    }
+    return done(null, user);
+  }));
+} else {
+  console.warn('⚠️  GITHUB_CLIENT_ID not set — GitHub OAuth will not work');
+}
+
+if (process.env.GOOGLE_CLIENT_ID) {
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: `${process.env.SERVER_URL || 'http://localhost:3001'}/auth/google/callback`,
+  }, (_accessToken, _refreshToken, profile, done) => {
+    const users = readUsers();
+    let user = users.find(u => u.googleId === profile.id);
+    if (!user) {
+      user = {
+        id: uuidv4(),
+        googleId: profile.id,
+        name: profile.displayName,
+        username: profile.emails?.[0]?.value?.split('@')[0] || profile.id,
+        avatar: profile.photos?.[0]?.value || null,
+        createdAt: new Date().toISOString(),
+      };
+      users.push(user);
+      writeUsers(users);
+    }
+    return done(null, user);
+  }));
+} else {
+  console.warn('⚠️  GOOGLE_CLIENT_ID not set — Google OAuth will not work');
+}
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+const aiRateLimit = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Daily generation limit reached. Try again tomorrow.' },
+});
+
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn('⚠️  ANTHROPIC_API_KEY is not set — AI generation will fail');
+}
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(DIAGRAMS_FILE)) fs.writeFileSync(DIAGRAMS_FILE, JSON.stringify([]));
@@ -139,31 +242,9 @@ JSON FORMAT:
   ]
 }`;
 
-// Quick key + model probe — call this to see exactly what error Anthropic returns
-app.post('/api/test-key', async (req, res) => {
-  const { apiKey } = req.body;
-  if (!apiKey?.trim()) return res.status(400).json({ error: 'apiKey required' });
-  try {
-    const client = new Anthropic({ apiKey });
-    const msg = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 5,
-      messages: [{ role: 'user', content: 'hi' }],
-    });
-    res.json({ ok: true, model: msg.model, usage: msg.usage });
-  } catch (err) {
-    res.status(err.status || 500).json({
-      ok: false,
-      status: err.status,
-      error: err.error?.error?.message || err.message,
-    });
-  }
-});
-
-app.post('/api/generate', async (req, res) => {
-  const { prompt, apiKey } = req.body;
+app.post('/api/generate', aiRateLimit, async (req, res) => {
+  const { prompt } = req.body;
   if (!prompt?.trim()) return res.status(400).json({ error: 'prompt is required' });
-  if (!apiKey?.trim()) return res.status(400).json({ error: 'Anthropic API key is required' });
 
   // SSE setup — flush headers immediately so the client sees the stream start
   res.setHeader('Content-Type', 'text/event-stream');
@@ -178,10 +259,9 @@ app.post('/api/generate', async (req, res) => {
   };
 
   try {
-    const client = new Anthropic({ apiKey });
     let fullText = '';
 
-    const stream = client.messages.stream({
+    const stream = anthropic.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 8192,
       system: SYSTEM_PROMPT,
@@ -227,9 +307,9 @@ app.post('/api/generate', async (req, res) => {
     const detail = err.error?.error?.message || err.message || 'Generation failed';
     console.error(`Generate error [${status}]:`, detail);
     let message = detail;
-    if (status === 401) message = 'Invalid API key — check your Anthropic key at console.anthropic.com';
+    if (status === 401) message = 'Server API key is misconfigured — contact the site admin';
     if (status === 404) message = 'Model not found — the configured model may have been deprecated';
-    if (status === 429) message = 'Rate limited — wait a moment and try again';
+    if (status === 429) message = 'Rate limited by Anthropic — wait a moment and try again';
     send('error', { message });
     res.end();
   }
@@ -283,11 +363,10 @@ JSON FORMAT:
   ]
 }`;
 
-app.post('/api/edit', async (req, res) => {
-  const { prompt, currentDiagram, apiKey } = req.body;
+app.post('/api/edit', aiRateLimit, async (req, res) => {
+  const { prompt, currentDiagram } = req.body;
   if (!prompt?.trim()) return res.status(400).json({ error: 'prompt is required' });
   if (!currentDiagram?.nodes?.length) return res.status(400).json({ error: 'currentDiagram with nodes is required' });
-  if (!apiKey?.trim()) return res.status(400).json({ error: 'Anthropic API key is required' });
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -301,8 +380,6 @@ app.post('/api/edit', async (req, res) => {
   };
 
   try {
-    const client = new Anthropic({ apiKey });
-
     // Trim node data to essentials to keep token count low
     const slimNodes = currentDiagram.nodes.map(({ id, type, position, data }) => ({
       id, type, position, data: { componentType: data.componentType, label: data.label, notes: data.notes },
@@ -319,7 +396,7 @@ ${prompt.trim()}`;
 
     let fullText = '';
 
-    const stream = client.messages.stream({
+    const stream = anthropic.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 8192,
       system: EDIT_SYSTEM_PROMPT,
@@ -365,12 +442,44 @@ ${prompt.trim()}`;
     const detail = err.error?.error?.message || err.message || 'Edit failed';
     console.error(`Edit error [${status}]:`, detail);
     let message = detail;
-    if (status === 401) message = 'Invalid API key — check your Anthropic key at console.anthropic.com';
-    if (status === 429) message = 'Rate limited — wait a moment and try again';
+    if (status === 401) message = 'Server API key is misconfigured — contact the site admin';
+    if (status === 429) message = 'Rate limited by Anthropic — wait a moment and try again';
     send('error', { message });
     res.end();
   }
 });
+
+// ─── Auth Routes ────────────────────────────────────────────────────────────
+
+app.get('/auth/github',
+  passport.authenticate('github', { scope: ['user:email'] })
+);
+
+app.get('/auth/github/callback',
+  passport.authenticate('github', { failureRedirect: `${CLIENT_URL}/?error=auth_failed` }),
+  (req, res) => res.redirect(`${CLIENT_URL}/app`)
+);
+
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+app.get('/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: `${CLIENT_URL}/?error=auth_failed` }),
+  (req, res) => res.redirect(`${CLIENT_URL}/app`)
+);
+
+app.get('/api/auth/me', (req, res) => {
+  if (!req.user) return res.status(401).json({ user: null });
+  const { id, name, username, avatar } = req.user;
+  res.json({ user: { id, name, username, avatar } });
+});
+
+app.post('/auth/logout', (req, res) => {
+  req.logout(() => res.json({ ok: true }));
+});
+
+// ────────────────────────────────────────────────────────────────────────────
 
 const server = app.listen(PORT, () => {
   console.log(`DE Diagrams server running on http://localhost:${PORT}`);

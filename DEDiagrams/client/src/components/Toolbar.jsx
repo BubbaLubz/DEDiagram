@@ -1,18 +1,21 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Save, FolderOpen, Trash2, AlignLeft, Download,
   Maximize, RotateCcw, Wand2, DollarSign, Image, Upload,
+  Pencil, Undo2,
 } from 'lucide-react';
 import useStore from '../store';
 import { useCanvasActions } from '../context/CanvasActionsContext';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../theme';
 
 const EDGE_TYPES = [
-  { value: 'batch',     label: 'Batch',     color: '#94a3b8' },
-  { value: 'streaming', label: 'Streaming', color: '#3b82f6' },
-  { value: 'api',       label: 'API',       color: '#a855f7' },
-  { value: 'cdc',       label: 'CDC',       color: '#ef4444' },
-  { value: 'event',     label: 'Event',     color: '#f59e0b' },
-  { value: 'sql',       label: 'SQL',       color: '#10b981' },
+  { value: 'batch',     label: 'Batch',     color: '#6B7280' },
+  { value: 'streaming', label: 'Streaming', color: '#3B82F6' },
+  { value: 'api',       label: 'API',       color: '#8B5CF6' },
+  { value: 'cdc',       label: 'CDC',       color: '#EF4444' },
+  { value: 'event',     label: 'Event',     color: '#F59E0B' },
+  { value: 'sql',       label: 'SQL',       color: '#10B981' },
 ];
 
 export default function Toolbar() {
@@ -23,10 +26,13 @@ export default function Toolbar() {
     selectedNode, edges, updateEdgeData, nodes, deleteSelected,
     openGenerateModal, toggleCostPanel, isCostPanelOpen,
     loadTemplate,
+    isDrawingMode, toggleDrawingMode, penColor, setPenColor,
+    penWidth, setPenWidth, undoLastStroke, clearDrawing, drawingStrokes,
+    openAccountSettings,
   } = useStore();
 
+  const P = useTheme();
   const fileInputRef = useRef(null);
-
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(currentDiagramName);
   const [defaultEdgeType, setDefaultEdgeType] = useState('batch');
@@ -76,135 +82,380 @@ export default function Toolbar() {
   };
 
   return (
-    <div
-      className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-700 flex-shrink-0 flex-wrap"
-      style={{ background: '#0d1117', minHeight: 48 }}
-    >
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      padding: '0 14px', height: 48, flexShrink: 0,
+      background: P.bg, borderBottom: `1px solid ${P.divider}`,
+      fontFamily: "'Inter', system-ui, sans-serif",
+    }}>
+
       {/* Diagram name */}
-      <div className="flex items-center gap-2 mr-1">
+      <div style={{ display: 'flex', alignItems: 'center', marginRight: 2 }}>
         {editingName ? (
           <input
             autoFocus
             value={nameValue}
             onChange={e => setNameValue(e.target.value)}
             onBlur={handleNameSubmit}
-            onKeyDown={e => { if (e.key === 'Enter') handleNameSubmit(); if (e.key === 'Escape') setEditingName(false); }}
-            className="text-sm font-semibold bg-slate-800 text-white border border-indigo-500 rounded px-2 py-0.5 outline-none"
-            style={{ width: 200 }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleNameSubmit();
+              if (e.key === 'Escape') setEditingName(false);
+            }}
+            style={{
+              fontSize: 13, fontWeight: 600, width: 200,
+              background: P.surface, color: P.text,
+              border: `1.5px solid ${P.amber}`, borderRadius: 3,
+              padding: '2px 8px', outline: 'none',
+            }}
           />
         ) : (
           <button
             onClick={() => { setNameValue(currentDiagramName); setEditingName(true); }}
-            className="text-sm font-semibold text-slate-200 hover:text-white flex items-center gap-1.5 group"
+            style={{
+              fontSize: 13, fontWeight: 600, color: P.text,
+              background: 'none', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6, padding: '2px 4px',
+            }}
           >
             {currentDiagramName}
-            {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"/>}
-            <svg className="w-3 h-3 text-slate-600 group-hover:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-            </svg>
+            {isDirty && (
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: P.amber, flexShrink: 0 }}/>
+            )}
           </button>
         )}
       </div>
 
-      <div className="w-px h-5 bg-slate-700"/>
+      <Sep/>
 
       {/* AI Generate — primary CTA */}
-      <button
-        onClick={openGenerateModal}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150"
-        style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white' }}
-        title="Generate pipeline from a text description"
-      >
-        <Wand2 size={13}/>
-        AI Generate
-      </button>
+      <AIGenBtn onClick={openGenerateModal}/>
 
-      <div className="w-px h-5 bg-slate-700"/>
+      <Sep/>
 
       {/* File actions */}
-      <div className="flex items-center gap-1">
-        <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportJSON}/>
-        <ToolbarButton onClick={openSaveModal} title="Save (Ctrl+S)" icon={Save}/>
-        <ToolbarButton onClick={openLoadModal} title="Open saved" icon={FolderOpen}/>
-        <ToolbarButton onClick={() => fileInputRef.current?.click()} title="Import JSON" icon={Upload}/>
-        <ToolbarButton onClick={handleExportJSON} title="Export JSON" icon={Download}/>
-        <ToolbarButton onClick={exportImage} title="Export PNG image" icon={Image}/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <input ref={fileInputRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJSON}/>
+        <TBtn onClick={openSaveModal} title="Save (Ctrl+S)" Icon={Save}/>
+        <TBtn onClick={openLoadModal} title="Open saved" Icon={FolderOpen}/>
+        <TBtn onClick={() => fileInputRef.current?.click()} title="Import JSON" Icon={Upload}/>
+        <TBtn onClick={handleExportJSON} title="Export JSON" Icon={Download}/>
+        <TBtn onClick={exportImage} title="Export PNG" Icon={Image}/>
       </div>
 
-      <div className="w-px h-5 bg-slate-700"/>
+      <Sep/>
 
-      {/* Layout + View */}
-      <div className="flex items-center gap-1">
-        <ToolbarButton onClick={autoLayout} title="Auto-layout left→right" icon={AlignLeft} label="Auto Layout"/>
-        <ToolbarButton onClick={fitView} title="Fit all to view" icon={Maximize}/>
+      {/* Layout */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <TBtn onClick={autoLayout} title="Auto-layout left→right" Icon={AlignLeft} label="Auto Layout"/>
+        <TBtn onClick={fitView} title="Fit all to view" Icon={Maximize}/>
       </div>
 
-      <div className="w-px h-5 bg-slate-700"/>
+      <Sep/>
+
+      {/* Pen tool */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <PenToggleBtn active={isDrawingMode} onClick={toggleDrawingMode}/>
+        {isDrawingMode && (
+          <>
+            {/* Color swatch + hex input */}
+            <label style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Pick color">
+              <div style={{
+                width: 18, height: 18, borderRadius: 3, background: penColor,
+                border: `1.5px solid ${P.divider}`, flexShrink: 0, cursor: 'pointer',
+              }}/>
+              <input
+                type="color"
+                value={penColor}
+                onChange={e => setPenColor(e.target.value)}
+                style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+                tabIndex={-1}
+              />
+            </label>
+            <input
+              type="text"
+              value={penColor}
+              onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setPenColor(e.target.value); }}
+              style={{
+                width: 72, fontSize: 11, fontFamily: 'monospace',
+                background: '#F7F4EF', border: `1px solid ${P.divider}`, borderRadius: 3,
+                padding: '2px 6px', color: P.text, outline: 'none', letterSpacing: '0.04em',
+              }}
+            />
+            {/* Width dots */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              {[2, 4, 7].map(w => (
+                <button
+                  key={w}
+                  onClick={() => setPenWidth(w)}
+                  title={`Stroke width ${w}`}
+                  style={{
+                    width: 20, height: 20, borderRadius: 3, border: `1px solid ${penWidth === w ? P.amber + '88' : P.divider}`,
+                    background: penWidth === w ? P.amber + '18' : 'transparent',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <div style={{ width: w + 2, height: w + 2, borderRadius: '50%', background: penWidth === w ? P.amber : P.faint }}/>
+                </button>
+              ))}
+            </div>
+            {drawingStrokes.length > 0 && (
+              <>
+                <TBtn onClick={undoLastStroke} title="Undo last stroke" Icon={Undo2}/>
+                <TBtn onClick={clearDrawing} title="Clear all drawing" Icon={RotateCcw}/>
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      <Sep/>
 
       {/* Edge type selector */}
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs text-slate-500 whitespace-nowrap">Edge:</span>
-        <div className="flex items-center gap-0.5">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 11, color: P.faint, whiteSpace: 'nowrap' }}>Edge:</span>
+        <div style={{ display: 'flex', gap: 2 }}>
           {EDGE_TYPES.map(({ value, label, color }) => (
-            <button
+            <EdgeTypeBtn
               key={value}
+              active={defaultEdgeType === value}
+              color={color}
+              label={label}
               onClick={() => handleEdgeTypeChange(value)}
-              title={`${label} connection${selectedEdges.length > 0 ? ' — apply to selected edge' : ''}`}
-              className={`text-xs px-1.5 py-1 rounded transition-all ${
-                defaultEdgeType === value ? 'font-semibold' : 'opacity-40 hover:opacity-70'
-              }`}
-              style={{
-                color,
-                background: defaultEdgeType === value ? color + '22' : 'transparent',
-                border: `1px solid ${defaultEdgeType === value ? color + '66' : 'transparent'}`,
-              }}
-            >
-              {label}
-            </button>
+              title={`${label} connection${selectedEdges.length > 0 ? ' — apply to selected' : ''}`}
+            />
           ))}
         </div>
       </div>
 
-      <div className="flex-1"/>
+      <div style={{ flex: 1 }}/>
 
-      {/* Cost estimator toggle */}
-      <button
-        onClick={toggleCostPanel}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-          isCostPanelOpen
-            ? 'text-emerald-300 bg-emerald-900/30 border border-emerald-700'
-            : 'text-slate-400 hover:text-emerald-300 hover:bg-emerald-900/20 border border-transparent'
-        }`}
-        title="Estimate monthly cloud costs for this pipeline"
-      >
-        <DollarSign size={13}/>
-        Cost Estimator
-      </button>
+      {/* Cost estimator */}
+      <CostEstimatorBtn active={isCostPanelOpen} onClick={toggleCostPanel}/>
 
-      <div className="w-px h-5 bg-slate-700"/>
+      <Sep/>
 
-      {/* Destructive actions */}
+      {/* Destructive */}
       {(selectedNode || nodes.some(n => n.selected)) && (
-        <ToolbarButton onClick={deleteSelected} title="Delete selected (Delete key)" icon={Trash2} danger/>
+        <TBtn onClick={deleteSelected} title="Delete selected (Del)" Icon={Trash2} danger/>
       )}
-      <ToolbarButton onClick={clearCanvas} title="Clear canvas" icon={RotateCcw} danger/>
+      <TBtn onClick={clearCanvas} title="Clear canvas" Icon={RotateCcw} danger/>
+
+      <Sep/>
+
+      {/* Profile */}
+      <ProfileMenu/>
     </div>
   );
 }
 
-function ToolbarButton({ onClick, title, icon: Icon, label, danger }) {
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+function Sep() {
+  const P = useTheme();
+  return <div style={{ width: 1, height: 20, background: P.divider, flexShrink: 0 }}/>;
+}
+
+function TBtn({ onClick, title, Icon, label, danger }) {
+  const P = useTheme();
+  const [hover, setHover] = useState(false);
   return (
     <button
       onClick={onClick}
       title={title}
-      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-        danger
-          ? 'text-slate-500 hover:text-red-400 hover:bg-red-900/20'
-          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/60'
-      }`}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 5,
+        padding: '5px 8px', borderRadius: 3, border: 'none',
+        fontSize: 12, fontWeight: 500, cursor: 'pointer',
+        color: hover ? (danger ? P.danger : P.text) : (danger ? P.faint : P.muted),
+        background: hover ? (danger ? P.danger + '18' : P.hover) : 'transparent',
+        transition: 'all 0.12s',
+      }}
     >
       <Icon size={13}/>
       {label && <span>{label}</span>}
+    </button>
+  );
+}
+
+function AIGenBtn({ onClick }) {
+  const P = useTheme();
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title="Generate pipeline from a description"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '5px 12px', borderRadius: 3, border: 'none',
+        fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        background: hover ? P.hover : P.text,
+        color: P.bg,
+        transition: 'background 0.15s',
+      }}
+    >
+      <Wand2 size={12}/>
+      AI Generate
+    </button>
+  );
+}
+
+function EdgeTypeBtn({ active, color, label, onClick, title }) {
+  const P = useTheme();
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        fontSize: 11, padding: '3px 7px', borderRadius: 3, cursor: 'pointer',
+        border: `1px solid ${active ? color + '88' : 'transparent'}`,
+        background: active ? color + '18' : hover ? P.hover : 'transparent',
+        color: active ? color : hover ? P.text : P.muted,
+        fontWeight: active ? 600 : 400,
+        transition: 'all 0.12s',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function PenToggleBtn({ active, onClick }) {
+  const P = useTheme();
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title={active ? 'Exit draw mode' : 'Draw on canvas'}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 5,
+        padding: '5px 8px', borderRadius: 3, fontSize: 12, fontWeight: 500,
+        cursor: 'pointer', transition: 'all 0.12s',
+        color: active ? P.amber : hover ? P.text : P.muted,
+        background: active ? P.amber + '18' : hover ? P.hover : 'transparent',
+        border: `1px solid ${active ? P.amber + '66' : 'transparent'}`,
+      }}
+    >
+      <Pencil size={13}/>
+      {active ? 'Drawing' : 'Draw'}
+    </button>
+  );
+}
+
+function CostEstimatorBtn({ active, onClick }) {
+  const P = useTheme();
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title="Estimate monthly cloud costs"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 5,
+        padding: '5px 10px', borderRadius: 3, fontSize: 12, fontWeight: 500,
+        cursor: 'pointer', transition: 'all 0.12s',
+        color: active ? '#2D7A4F' : hover ? P.text : P.muted,
+        background: active ? '#D4EDE0' : hover ? P.hover : 'transparent',
+        border: `1px solid ${active ? '#A5C9B6' : 'transparent'}`,
+      }}
+    >
+      <DollarSign size={13}/>
+      Cost Estimator
+    </button>
+  );
+}
+
+function ProfileMenu() {
+  const P = useTheme();
+  const { user, logout } = useAuth();
+  const { openAccountSettings } = useStore();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  if (!user) return null;
+
+  const initials = (user.name || '?')
+    .split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: 30, height: 30, borderRadius: '50%',
+          border: `1.5px solid ${open ? P.amber : P.divider}`,
+          overflow: 'hidden', cursor: 'pointer',
+          background: P.amber, color: '#fff',
+          fontSize: 11, fontWeight: 700,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'border-color 0.15s', padding: 0, flexShrink: 0,
+        }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = P.amber}
+        onMouseLeave={e => { if (!open) e.currentTarget.style.borderColor = P.divider; }}
+      >
+        {user.avatar
+          ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+          : initials}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', right: 0, top: 'calc(100% + 6px)',
+          background: P.surface, border: `1px solid ${P.divider}`,
+          minWidth: 210, zIndex: 1000,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+        }}>
+          <div style={{ padding: '14px 16px', borderBottom: `1px solid ${P.divider}` }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: P.text, margin: 0 }}>{user.name}</p>
+            {user.username && (
+              <p style={{ fontSize: 12, color: P.muted, marginTop: 2 }}>@{user.username}</p>
+            )}
+          </div>
+          <div style={{ padding: '4px 0' }}>
+            <DropdownItem label="Account Settings" onClick={() => { setOpen(false); openAccountSettings(); }}/>
+            <DropdownItem label="Sign Out" onClick={() => { setOpen(false); logout(); }} danger/>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DropdownItem({ label, onClick, danger }) {
+  const P = useTheme();
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: '100%', textAlign: 'left', display: 'block',
+        padding: '9px 16px', fontSize: 13,
+        color: danger ? P.danger : P.text,
+        background: hover ? P.deeper : 'transparent',
+        border: 'none', cursor: 'pointer',
+        transition: 'background 0.1s',
+      }}
+    >
+      {label}
     </button>
   );
 }

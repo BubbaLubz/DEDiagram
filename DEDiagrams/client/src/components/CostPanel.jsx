@@ -2,37 +2,40 @@ import { useState, useMemo } from 'react';
 import { X, DollarSign, Info, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { estimatePipelineCost, DEFAULT_PARAMS, PARAM_CONFIGS } from '../data/costModels';
 import useStore from '../store';
+import { useTheme } from '../theme';
 
 function fmtUSD(n) {
   if (n >= 10000) return `$${(n / 1000).toFixed(1)}k`;
-  if (n >= 1000) return `$${(n / 1000).toFixed(2)}k`;
+  if (n >= 1000)  return `$${(n / 1000).toFixed(2)}k`;
   return `$${n.toFixed(0)}`;
 }
 
 function costColor(monthly) {
-  if (monthly < 100) return '#22c55e';
-  if (monthly < 500) return '#f59e0b';
+  if (monthly < 100)  return '#22c55e';
+  if (monthly < 500)  return '#f59e0b';
   if (monthly < 2000) return '#f97316';
   return '#ef4444';
 }
 
 function costBg(monthly) {
-  if (monthly < 100) return '#052e16';
-  if (monthly < 500) return '#1c1207';
-  if (monthly < 2000) return '#1c0f07';
-  return '#1c0a0a';
+  if (monthly < 100)  return '#f0fdf4';
+  if (monthly < 500)  return '#fffbeb';
+  if (monthly < 2000) return '#fff7ed';
+  return '#fef2f2';
 }
 
 function CostBar({ monthly, maxMonthly }) {
+  const P = useTheme();
   const pct = maxMonthly > 0 ? Math.min(100, (monthly / maxMonthly) * 100) : 0;
   return (
-    <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden mt-1">
-      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: costColor(monthly) }}/>
+    <div style={{ width: '100%', height: 3, background: P.divider, borderRadius: 2, overflow: 'hidden', marginTop: 6 }}>
+      <div style={{ height: '100%', borderRadius: 2, transition: 'width 0.5s', width: `${pct}%`, background: costColor(monthly) }}/>
     </div>
   );
 }
 
 function ParamSlider({ config, value, onChange }) {
+  const P = useTheme();
   const [localVal, setLocalVal] = useState(value);
 
   const handleChange = (v) => {
@@ -43,22 +46,27 @@ function ParamSlider({ config, value, onChange }) {
 
   const fmtVal = (v) => {
     if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
-    if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
+    if (v >= 1000)    return `${(v / 1000).toFixed(1)}k`;
     return v;
   };
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-slate-300">{config.label}</span>
-        <div className="flex items-center gap-1">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: P.text }}>{config.label}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <input
             type="number"
             value={localVal}
             onChange={e => handleChange(e.target.value)}
-            className="w-20 text-right text-xs bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 text-slate-200 outline-none focus:border-indigo-500"
+            style={{
+              width: 72, textAlign: 'right', fontSize: 12,
+              background: P.input, border: `1px solid ${P.divider}`, borderRadius: 3,
+              padding: '2px 6px', color: P.text, outline: 'none',
+              fontFamily: 'monospace',
+            }}
           />
-          <span className="text-xs text-slate-500 w-8">{config.unit}</span>
+          <span style={{ fontSize: 11, color: P.faint, width: 32 }}>{config.unit}</span>
         </div>
       </div>
       <input
@@ -68,17 +76,18 @@ function ParamSlider({ config, value, onChange }) {
         step={config.step}
         value={localVal}
         onChange={e => handleChange(e.target.value)}
-        className="w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-indigo-500"
+        style={{ width: '100%', height: 3, borderRadius: 2, cursor: 'pointer', accentColor: P.amber }}
       />
-      <p className="text-xs text-slate-600">{config.description}</p>
+      <p style={{ fontSize: 11, color: P.faint }}>{config.description}</p>
     </div>
   );
 }
 
 export default function CostPanel() {
+  const P = useTheme();
   const { closeCostPanel, nodes } = useStore();
-  const [params, setParams] = useState(DEFAULT_PARAMS);
-  const [expandedItem, setExpandedItem] = useState(null);
+  const [params, setParams]         = useState(DEFAULT_PARAMS);
+  const [expandedItem, setExpanded] = useState(null);
   const [showParams, setShowParams] = useState(true);
 
   const updateParam = (key, value) => setParams(p => ({ ...p, [key]: value }));
@@ -97,35 +106,52 @@ export default function CostPanel() {
     : confidenceCount.medium > 1 ? 'medium' : 'high';
 
   return (
-    <div className="h-full flex flex-col overflow-hidden" style={{ background: '#161b22', borderLeft: '1px solid #30363d', width: 400 }}>
+    <div style={{ width: 400, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: P.bg, borderLeft: `1px solid ${P.divider}` }}>
+
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #065f46, #047857)' }}>
-            <DollarSign size={14} className="text-emerald-300"/>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: `1px solid ${P.divider}`, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#D4EDE0', border: `1px solid #A5C9B6` }}>
+            <DollarSign size={14} style={{ color: '#2D7A4F' }}/>
           </div>
           <div>
-            <h2 className="text-sm font-bold text-white">Cost Estimator</h2>
-            <p className="text-xs text-slate-500">{items.length} billable component{items.length !== 1 ? 's' : ''} in diagram</p>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: P.text }}>Cost Estimator</h2>
+            <p style={{ fontSize: 11, color: P.faint }}>{items.length} billable component{items.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
-        <button onClick={closeCostPanel} className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
+        <button
+          onClick={closeCostPanel}
+          style={{ padding: 6, borderRadius: 4, border: 'none', background: 'none', cursor: 'pointer', color: P.faint }}
+          onMouseEnter={e => e.currentTarget.style.color = P.text}
+          onMouseLeave={e => e.currentTarget.style.color = P.faint}
+        >
           <X size={15}/>
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {/* Volume params */}
-        <div className="border-b border-slate-700">
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+
+        {/* Volume parameters */}
+        <div style={{ borderBottom: `1px solid ${P.divider}` }}>
           <button
             onClick={() => setShowParams(!showParams)}
-            className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-700/20 transition-colors"
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = P.hover}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Volume Parameters</span>
-            {showParams ? <ChevronUp size={13} className="text-slate-500"/> : <ChevronDown size={13} className="text-slate-500"/>}
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: P.muted }}>
+              Volume Parameters
+            </span>
+            {showParams
+              ? <ChevronUp size={12} style={{ color: P.faint }}/>
+              : <ChevronDown size={12} style={{ color: P.faint }}/>}
           </button>
           {showParams && (
-            <div className="px-4 pb-4 space-y-4">
+            <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {PARAM_CONFIGS.map(cfg => (
                 <ParamSlider
                   key={cfg.key}
@@ -139,113 +165,133 @@ export default function CostPanel() {
         </div>
 
         {/* Cost breakdown */}
-        <div className="p-4">
+        <div style={{ padding: 16 }}>
           {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <DollarSign size={28} className="text-slate-600 mb-2"/>
-              <p className="text-sm text-slate-500">No components on canvas</p>
-              <p className="text-xs text-slate-600 mt-1">Add components or load a template to see cost estimates</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0', textAlign: 'center' }}>
+              <DollarSign size={28} style={{ color: P.faint, marginBottom: 10 }}/>
+              <p style={{ fontSize: 13, color: P.muted }}>No components on canvas</p>
+              <p style={{ fontSize: 12, color: P.faint, marginTop: 4 }}>Add components or load a template to see estimates</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {items
                 .sort((a, b) => b.monthly - a.monthly)
                 .map(item => (
-                  <div
+                  <CostItem
                     key={item.componentType}
-                    className="rounded-xl border overflow-hidden cursor-pointer transition-all"
-                    style={{ borderColor: expandedItem === item.componentType ? costColor(item.monthly) + '66' : '#30363d' }}
-                    onClick={() => setExpandedItem(expandedItem === item.componentType ? null : item.componentType)}
-                  >
-                    <div className="px-3 py-2.5" style={{ background: expandedItem === item.componentType ? costBg(item.monthly) : '#1c2333' }}>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: costColor(item.monthly) }}/>
-                          <span className="text-sm font-medium text-slate-200 truncate">{item.label}</span>
-                          <span
-                            className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
-                            style={{ background: '#0d1117', color: item.confidence === 'high' ? '#22c55e' : item.confidence === 'medium' ? '#f59e0b' : '#94a3b8', border: '1px solid #30363d' }}
-                          >
-                            {item.confidence}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span className="text-sm font-bold" style={{ color: costColor(item.monthly) }}>{fmtUSD(item.monthly)}</span>
-                          <span className="text-xs text-slate-600">/mo</span>
-                        </div>
-                      </div>
-                      <CostBar monthly={item.monthly} maxMonthly={maxMonthly}/>
-                    </div>
-
-                    {expandedItem === item.componentType && (
-                      <div className="px-3 py-2.5 border-t border-slate-700 bg-slate-900/50 space-y-1.5">
-                        <p className="text-xs text-slate-500 font-medium">{item.service}</p>
-                        {item.breakdown.map((b, i) => (
-                          <div key={i} className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">{b.label}</span>
-                            <span className="text-slate-300 font-mono">{fmtUSD(b.amount)}</span>
-                          </div>
-                        ))}
-                        {item.note && (
-                          <div className="flex items-start gap-1.5 pt-1 border-t border-slate-700 mt-1">
-                            <Info size={11} className="text-slate-500 mt-0.5 flex-shrink-0"/>
-                            <p className="text-xs text-slate-500 leading-relaxed">{item.note}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                    item={item}
+                    maxMonthly={maxMonthly}
+                    expanded={expandedItem === item.componentType}
+                    onToggle={() => setExpanded(expandedItem === item.componentType ? null : item.componentType)}
+                  />
                 ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Total footer */}
+      {/* Footer totals */}
       {items.length > 0 && (
-        <div className="border-t border-slate-700 px-4 py-4 flex-shrink-0 space-y-3" style={{ background: '#0d1117' }}>
-          {/* Confidence badge */}
-          <div className="flex items-center gap-2">
-            <Info size={12} className="text-slate-500 flex-shrink-0"/>
-            <p className="text-xs text-slate-500">
-              Estimates based on public list pricing. Actual costs vary with reserved capacity, usage patterns, and negotiated rates.
+        <div style={{ borderTop: `1px solid ${P.divider}`, padding: '14px 16px', flexShrink: 0, background: P.surface, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            <Info size={11} style={{ color: P.faint, flexShrink: 0, marginTop: 1 }}/>
+            <p style={{ fontSize: 11, color: P.faint, lineHeight: 1.55 }}>
+              Estimates based on public list pricing. Actual costs vary with reserved capacity and usage patterns.
             </p>
           </div>
 
-          {/* Confidence meter */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 w-20">Confidence:</span>
-            <div className="flex gap-1">
-              {['high', 'medium', 'low'].map((c) => (
-                <span
-                  key={c}
-                  className="text-xs px-2 py-0.5 rounded-full"
-                  style={{
-                    background: overallConfidence === c ? (c === 'high' ? '#052e16' : c === 'medium' ? '#1c1207' : '#1c0a0a') : '#1c2333',
-                    color: overallConfidence === c ? (c === 'high' ? '#22c55e' : c === 'medium' ? '#f59e0b' : '#94a3b8') : '#374151',
-                    border: `1px solid ${overallConfidence === c ? (c === 'high' ? '#166534' : c === 'medium' ? '#92400e' : '#374151') : '#30363d'}`,
-                  }}
-                >
-                  {c}
-                </span>
-              ))}
+          {/* Confidence */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: P.faint, width: 72 }}>Confidence:</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {['high', 'medium', 'low'].map(c => {
+                const active = overallConfidence === c;
+                const clr = c === 'high' ? '#22c55e' : c === 'medium' ? '#f59e0b' : '#9ca3af';
+                return (
+                  <span key={c} style={{
+                    fontSize: 11, padding: '2px 8px', borderRadius: 2,
+                    background: active ? clr + '22' : P.card,
+                    color: active ? clr : P.faint,
+                    border: `1px solid ${active ? clr + '66' : P.divider}`,
+                  }}>
+                    {c}
+                  </span>
+                );
+              })}
             </div>
           </div>
 
           {/* Totals */}
-          <div className="rounded-xl border border-slate-700 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-              <span className="text-sm font-medium text-slate-300">Monthly Total</span>
-              <span className="text-xl font-bold text-white">{fmtUSD(total)}</span>
+          <div style={{ border: `1px solid ${P.divider}`, borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: `1px solid ${P.divider}` }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: P.text }}>Monthly Total</span>
+              <span style={{ fontSize: 20, fontWeight: 700, color: P.text }}>{fmtUSD(total)}</span>
             </div>
-            <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/50">
-              <div className="flex items-center gap-1.5">
-                <TrendingUp size={12} className="text-slate-500"/>
-                <span className="text-xs text-slate-400">Annual projection</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', background: P.card }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <TrendingUp size={11} style={{ color: P.faint }}/>
+                <span style={{ fontSize: 12, color: P.muted }}>Annual projection</span>
               </div>
-              <span className="text-sm font-semibold text-slate-200">{fmtUSD(yearlyTotal)}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: P.text }}>{fmtUSD(yearlyTotal)}</span>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CostItem({ item, maxMonthly, expanded, onToggle }) {
+  const P = useTheme();
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      style={{
+        border: `1px solid ${expanded ? costColor(item.monthly) + '66' : P.divider}`,
+        borderRadius: 4, overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.15s',
+      }}
+      onClick={onToggle}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <div style={{ padding: '10px 12px', background: expanded ? costBg(item.monthly) : hover ? P.hover : P.surface }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: costColor(item.monthly), flexShrink: 0 }}/>
+            <span style={{ fontSize: 13, fontWeight: 500, color: P.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {item.label}
+            </span>
+            <span style={{
+              fontSize: 10, padding: '1px 6px', borderRadius: 2, flexShrink: 0,
+              background: P.card, border: `1px solid ${P.divider}`,
+              color: item.confidence === 'high' ? '#22c55e' : item.confidence === 'medium' ? '#f59e0b' : P.faint,
+            }}>
+              {item.confidence}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: costColor(item.monthly) }}>{fmtUSD(item.monthly)}</span>
+            <span style={{ fontSize: 11, color: P.faint }}>/mo</span>
+          </div>
+        </div>
+        <CostBar monthly={item.monthly} maxMonthly={maxMonthly}/>
+      </div>
+
+      {expanded && (
+        <div style={{ padding: '10px 12px', borderTop: `1px solid ${P.divider}`, background: P.card, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <p style={{ fontSize: 11, color: P.muted, fontWeight: 500 }}>{item.service}</p>
+          {item.breakdown.map((b, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+              <span style={{ color: P.muted }}>{b.label}</span>
+              <span style={{ color: P.text, fontFamily: 'monospace' }}>{fmtUSD(b.amount)}</span>
+            </div>
+          ))}
+          {item.note && (
+            <div style={{ display: 'flex', gap: 6, paddingTop: 6, borderTop: `1px solid ${P.divider}`, marginTop: 2 }}>
+              <Info size={11} style={{ color: P.faint, flexShrink: 0, marginTop: 1 }}/>
+              <p style={{ fontSize: 11, color: P.faint, lineHeight: 1.5 }}>{item.note}</p>
+            </div>
+          )}
         </div>
       )}
     </div>
