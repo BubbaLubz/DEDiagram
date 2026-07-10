@@ -5,6 +5,7 @@ import DiagramCanvas from './components/DiagramCanvas';
 import DetailPanel from './components/DetailPanel';
 import CostPanel from './components/CostPanel';
 import Toolbar from './components/Toolbar';
+import DocPanel from './components/DocPanel';
 import SaveModal from './components/modals/SaveModal';
 import GenerateModal from './components/modals/GenerateModal';
 import AccountSettingsModal from './components/modals/AccountSettingsModal';
@@ -36,6 +37,7 @@ export default function App() {
           {isCostPanelOpen && <CostPanel/>}
         </div>
       </div>
+      <DocPanel/>
       <SaveModal/>
       <GenerateModal/>
       <AccountSettingsModal/>

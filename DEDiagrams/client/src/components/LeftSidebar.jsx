@@ -37,10 +37,13 @@ function DraggableComponent({ comp }) {
       <div style={{
         width: 28, height: 28, borderRadius: 6, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
-        background: comp.bg || P.surface,
+        background: comp.logo ? '#fff' : (comp.bg || P.surface),
         border: `1px solid ${comp.color ? comp.color + '44' : P.divider}`,
+        padding: comp.logo ? 4 : 0,
       }}>
-        {comp.iconEmoji}
+        {comp.logo ? (
+          <img src={comp.logo} alt={comp.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        ) : comp.iconEmoji}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 500, color: P.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

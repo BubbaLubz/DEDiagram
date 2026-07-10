@@ -1,3 +1,26 @@
+// Real company/project logos — self-hosted (extracted once from Devicon/Simple
+// Icons, not a runtime dependency). Only components with an available official
+// mark get one; everything else keeps its iconEmoji/lucideIcon treatment.
+import logoPostgresql from '../assets/logos/postgresql.svg';
+import logoMysql from '../assets/logos/mysql.svg';
+import logoMongodb from '../assets/logos/mongodb.svg';
+import logoKafka from '../assets/logos/kafka.svg';
+import logoRabbitmq from '../assets/logos/rabbitmq.svg';
+import logoSpark from '../assets/logos/spark.svg';
+import logoAirflow from '../assets/logos/airflow.svg';
+import logoRedis from '../assets/logos/redis.svg';
+import logoDocker from '../assets/logos/docker.svg';
+import logoAirbyte from '../assets/logos/airbyte.svg';
+import logoFlink from '../assets/logos/flink.svg';
+import logoDatabricks from '../assets/logos/databricks.svg';
+import logoPrefect from '../assets/logos/prefect.svg';
+import logoHdfs from '../assets/logos/hdfs.svg';
+import logoSnowflake from '../assets/logos/snowflake.svg';
+import logoBigquery from '../assets/logos/bigquery.svg';
+import logoLooker from '../assets/logos/looker.svg';
+import logoSuperset from '../assets/logos/superset.svg';
+import logoAnthropic from '../assets/logos/anthropic.svg';
+
 export const CATEGORIES = [
   { id: 'source', label: 'Sources', color: '#3b82f6', lightColor: '#93c5fd' },
   { id: 'ingestion', label: 'Ingestion', color: '#f97316', lightColor: '#fdba74' },
@@ -16,7 +39,7 @@ export const COMPONENTS = {
   // ─── Sources ─────────────────────────────────────────────────────────────
   postgresql: {
     type: 'postgresql', label: 'PostgreSQL', category: 'source',
-    color: '#336791', bg: '#1a2f45',
+    color: '#336791', bg: '#1a2f45', logo: logoPostgresql,
     iconText: 'PG', iconEmoji: '🐘', lucideIcon: 'Database',
     tagline: 'Relational DB / CDC Source',
     description: 'Open-source RDBMS used as a transactional source of truth. Supports logical replication for CDC.',
@@ -26,7 +49,7 @@ export const COMPONENTS = {
   },
   mysql: {
     type: 'mysql', label: 'MySQL', category: 'source',
-    color: '#4479a1', bg: '#1a2a3d',
+    color: '#4479a1', bg: '#1a2a3d', logo: logoMysql,
     iconText: 'MY', iconEmoji: '🐬', lucideIcon: 'Database',
     tagline: 'Relational DB / CDC Source',
     description: 'Widely-used RDBMS. Binlog-based CDC allows capturing INSERT/UPDATE/DELETE events for streaming pipelines.',
@@ -36,7 +59,7 @@ export const COMPONENTS = {
   },
   mongodb: {
     type: 'mongodb', label: 'MongoDB', category: 'source',
-    color: '#47a248', bg: '#1a2e1a',
+    color: '#47a248', bg: '#1a2e1a', logo: logoMongodb,
     iconText: 'MDB', iconEmoji: '🍃', lucideIcon: 'Leaf',
     tagline: 'Document Store / Change Streams',
     description: 'Document-oriented NoSQL database. Change Streams enable real-time CDC on collections.',
@@ -88,7 +111,7 @@ export const COMPONENTS = {
   },
   airbyte: {
     type: 'airbyte', label: 'Airbyte', category: 'ingestion',
-    color: '#615ef0', bg: '#1a1a4a',
+    color: '#615ef0', bg: '#1a1a4a', logo: logoAirbyte,
     iconText: 'AB', iconEmoji: '✈️', lucideIcon: 'RefreshCcw',
     tagline: 'Open-source ELT Platform',
     description: 'Open-source data integration with 300+ connectors. Self-hosted or Airbyte Cloud. Supports custom connectors via CDK.',
@@ -110,7 +133,7 @@ export const COMPONENTS = {
   // ─── Streaming ────────────────────────────────────────────────────────────
   kafka: {
     type: 'kafka', label: 'Apache Kafka', category: 'streaming',
-    color: '#e8642a', bg: '#3d1a0a',
+    color: '#e8642a', bg: '#3d1a0a', logo: logoKafka,
     iconText: 'K', iconEmoji: '⚡', lucideIcon: 'MessageSquare',
     tagline: 'Distributed Event Streaming',
     description: 'High-throughput distributed event log. The backbone of event-driven architectures. Topics, partitions, consumer groups.',
@@ -120,7 +143,7 @@ export const COMPONENTS = {
   },
   rabbitmq: {
     type: 'rabbitmq', label: 'RabbitMQ', category: 'streaming',
-    color: '#ff6600', bg: '#3d1a00',
+    color: '#ff6600', bg: '#3d1a00', logo: logoRabbitmq,
     iconText: 'RMQ', iconEmoji: '🐇', lucideIcon: 'Mail',
     tagline: 'Message Broker / Task Queue',
     description: 'AMQP-based message broker. Best for task queues, RPC patterns, and complex routing. Lower throughput than Kafka.',
@@ -132,7 +155,7 @@ export const COMPONENTS = {
   // ─── Processing ───────────────────────────────────────────────────────────
   spark: {
     type: 'spark', label: 'Apache Spark', category: 'processing',
-    color: '#e25a1c', bg: '#3d1708',
+    color: '#e25a1c', bg: '#3d1708', logo: logoSpark,
     iconText: 'SP', iconEmoji: '⚡', lucideIcon: 'Zap',
     tagline: 'Unified Analytics Engine',
     description: 'In-memory distributed processing. Handles batch, micro-batch streaming (Structured Streaming), ML, and graph analytics.',
@@ -142,7 +165,7 @@ export const COMPONENTS = {
   },
   flink: {
     type: 'flink', label: 'Apache Flink', category: 'processing',
-    color: '#e6522c', bg: '#3d1508',
+    color: '#e6522c', bg: '#3d1508', logo: logoFlink,
     iconText: 'FL', iconEmoji: '🦊', lucideIcon: 'Wind',
     tagline: 'Stateful Stream Processing',
     description: 'True streaming engine with exactly-once state guarantees. Best for complex CEP, low-latency joins, and stateful transformations.',
@@ -162,7 +185,7 @@ export const COMPONENTS = {
   },
   databricks: {
     type: 'databricks', label: 'Databricks', category: 'processing',
-    color: '#ff3621', bg: '#3d0d0d',
+    color: '#ff3621', bg: '#3d0d0d', logo: logoDatabricks,
     iconText: 'DB', iconEmoji: '🧱', lucideIcon: 'Cpu',
     tagline: 'Unified Data + AI Platform',
     description: 'Managed Spark + Delta Lake platform. Lakehouse architecture — ACID on object storage. Unity Catalog for governance.',
@@ -184,7 +207,7 @@ export const COMPONENTS = {
   // ─── Orchestration ────────────────────────────────────────────────────────
   airflow: {
     type: 'airflow', label: 'Apache Airflow', category: 'orchestration',
-    color: '#017cee', bg: '#001d40',
+    color: '#017cee', bg: '#001d40', logo: logoAirflow,
     iconText: 'AF', iconEmoji: '🌀', lucideIcon: 'Network',
     tagline: 'Workflow Orchestration',
     description: 'Programmatic workflow orchestration via Python DAGs. Rich operator ecosystem for Spark, dbt, SQL, HTTP, and more.',
@@ -194,7 +217,7 @@ export const COMPONENTS = {
   },
   prefect: {
     type: 'prefect', label: 'Prefect', category: 'orchestration',
-    color: '#2d6df6', bg: '#0d1f4a',
+    color: '#2d6df6', bg: '#0d1f4a', logo: logoPrefect,
     iconText: 'PF', iconEmoji: '📌', lucideIcon: 'GitCommit',
     tagline: 'Modern Workflow Orchestration',
     description: 'Python-native orchestration with cloud UI. Flows/Tasks model. Dynamic workflows, automatic retries, and observability.',
@@ -256,7 +279,7 @@ export const COMPONENTS = {
   },
   hdfs: {
     type: 'hdfs', label: 'HDFS', category: 'storage',
-    color: '#fcba03', bg: '#332800',
+    color: '#fcba03', bg: '#332800', logo: logoHdfs,
     iconText: 'HDFS', iconEmoji: '💾', lucideIcon: 'Server',
     tagline: 'Hadoop Distributed File System',
     description: 'Classic distributed storage for on-prem Hadoop clusters. Block-based, 3x replication, optimized for large sequential reads.',
@@ -268,7 +291,7 @@ export const COMPONENTS = {
   // ─── Warehouse ────────────────────────────────────────────────────────────
   snowflake: {
     type: 'snowflake', label: 'Snowflake', category: 'warehouse',
-    color: '#29b5e8', bg: '#072535',
+    color: '#29b5e8', bg: '#072535', logo: logoSnowflake,
     iconText: '❄', iconEmoji: '❄️', lucideIcon: 'Snowflake',
     tagline: 'Cloud Data Warehouse',
     description: 'Elastic cloud data warehouse with separate compute and storage. Multi-cluster warehouse, zero-copy cloning, time travel.',
@@ -278,7 +301,7 @@ export const COMPONENTS = {
   },
   bigquery: {
     type: 'bigquery', label: 'BigQuery', category: 'warehouse',
-    color: '#4285f4', bg: '#0d1f4a',
+    color: '#4285f4', bg: '#0d1f4a', logo: logoBigquery,
     iconText: 'BQ', iconEmoji: '🔵', lucideIcon: 'Search',
     tagline: 'Google Serverless Data Warehouse',
     description: 'Fully managed, serverless data warehouse. Slot-based compute, columnar Capacitor storage, BI Engine for in-memory analytics.',
@@ -320,7 +343,7 @@ export const COMPONENTS = {
   },
   looker: {
     type: 'looker', label: 'Looker', category: 'serving',
-    color: '#4285f4', bg: '#0d1f4a',
+    color: '#4285f4', bg: '#0d1f4a', logo: logoLooker,
     iconText: 'LOK', iconEmoji: '🔍', lucideIcon: 'Eye',
     tagline: 'BI / Semantic Layer',
     description: 'Google-owned BI tool with LookML semantic layer. Defines metrics once in code, explores and dashboards reuse the layer.',
@@ -340,7 +363,7 @@ export const COMPONENTS = {
   },
   superset: {
     type: 'superset', label: 'Apache Superset', category: 'serving',
-    color: '#e43e2b', bg: '#3d0d0a',
+    color: '#e43e2b', bg: '#3d0d0a', logo: logoSuperset,
     iconText: 'SUP', iconEmoji: '📈', lucideIcon: 'TrendingUp',
     tagline: 'Open-source BI / Dashboards',
     description: 'Open-source business intelligence web application. Rich visualization library, SQL Lab for ad-hoc queries, and semantic layer.',
@@ -350,7 +373,7 @@ export const COMPONENTS = {
   },
   redis: {
     type: 'redis', label: 'Redis', category: 'serving',
-    color: '#d82c20', bg: '#3d0b08',
+    color: '#d82c20', bg: '#3d0b08', logo: logoRedis,
     iconText: 'RDS', iconEmoji: '🔴', lucideIcon: 'Layers',
     tagline: 'In-Memory Cache / Feature Store',
     description: 'In-memory data structure store. Used as cache layer, session store, feature store for ML serving, and real-time leaderboards.',
@@ -362,7 +385,7 @@ export const COMPONENTS = {
   // ─── Infrastructure ───────────────────────────────────────────────────────
   docker: {
     type: 'docker', label: 'Docker', category: 'infra',
-    color: '#0db7ed', bg: '#052535',
+    color: '#0db7ed', bg: '#052535', logo: logoDocker,
     iconText: 'DCK', iconEmoji: '🐳', lucideIcon: 'Box',
     tagline: 'Container Runtime / Packaging',
     description: 'Containerization platform that packages pipeline services and dependencies into portable images. Foundation for Kubernetes-based data platforms.',
@@ -374,7 +397,7 @@ export const COMPONENTS = {
   // ─── AI / LLM ─────────────────────────────────────────────────────────────
   anthropic: {
     type: 'anthropic', label: 'Anthropic SDK', category: 'ai_llm',
-    color: '#d4894a', bg: '#2a1a0a',
+    color: '#d4894a', bg: '#2a1a0a', logo: logoAnthropic,
     iconText: 'ANT', iconEmoji: '🤖', lucideIcon: 'Brain',
     tagline: 'Claude LLM Inference',
     description: 'Anthropic Python/JS SDK for Claude API. Used in pipelines for text classification, entity extraction, summarization, and structured data generation.',

@@ -129,6 +129,16 @@ html[data-theme="dark"] .react-flow__connection-line {
   stroke: #e3a854;
 }
 
+/* Pulses a node highlighted from the doc panel's active cell */
+@keyframes doc-cell-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--doc-pulse-color, rgba(184,112,64,0.55)); }
+  50%      { box-shadow: 0 0 0 10px rgba(0,0,0,0); }
+}
+
+.doc-cell-active-node {
+  animation: doc-cell-pulse 1.6s ease-in-out infinite;
+}
+
 /* Line clamp utility */
 .line-clamp-2 {
   display: -webkit-box;

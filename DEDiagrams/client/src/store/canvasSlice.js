@@ -1,8 +1,23 @@
 import { applyNodeChanges, applyEdgeChanges, addEdge } from 'reactflow';
+import { v4 as uuidv4 } from 'uuid';
+import { normalizeCells } from './docSlice';
 
 // Debounce state for updateNodeData — one snapshot per typing session
 let _nodeDataTimer = null;
 let _nodeDataSnapped = false;
+
+// Accepts either the current { nodeIds: [] } shape or the older single
+// { nodeId } shape (older saved diagrams / imported JSON), normalizes to the
+// current shape, and pads in the typeable plain-text gaps normalizeCells
+// guarantees (in case the saved/imported data doesn't have them already).
+export function normalizeDocCells(cells) {
+  if (!cells?.length) return [{ id: uuidv4(), text: '', nodeIds: [] }];
+  return normalizeCells(cells.map(c => ({
+    id: c.id,
+    text: c.text ?? '',
+    nodeIds: c.nodeIds ?? (c.nodeId ? [c.nodeId] : []),
+  })));
+}
 
 export const createCanvasSlice = (set, get) => ({
   // State
@@ -34,12 +49,12 @@ export const createCanvasSlice = (set, get) => ({
 
   // ReactFlow handlers
   onNodesChange: (changes) => {
-    const needsSnapshot = changes.some(c =>
-      c.type === 'remove' ||
-      (c.type === 'position' && c.dragging === false),
-    );
+    const removedIds = changes.filter(c => c.type === 'remove').map(c => c.id);
+    const needsSnapshot = removedIds.length > 0 ||
+      changes.some(c => c.type === 'position' && c.dragging === false);
     if (needsSnapshot) get().snapshot();
     set({ nodes: applyNodeChanges(changes, get().nodes), isDirty: true });
+    if (removedIds.length > 0) get().clearDocCellsForNodes(removedIds);
   },
 
   onEdgesChange: (changes) => {
@@ -92,11 +107,13 @@ export const createCanvasSlice = (set, get) => ({
 
   deleteSelected: () => {
     get().snapshot();
+    const removedIds = get().nodes.filter(n => n.selected).map(n => n.id);
     set({
       nodes: get().nodes.filter(n => !n.selected),
       edges: get().edges.filter(e => !e.selected),
       isDirty: true,
     });
+    if (removedIds.length > 0) get().clearDocCellsForNodes(removedIds);
   },
 
   selectNode: (node) => set({ selectedNode: node, isDetailOpen: !!node, isCostPanelOpen: false }),
@@ -111,6 +128,8 @@ export const createCanvasSlice = (set, get) => ({
       isDirty: true,
       selectedNode: null,
       isDetailOpen: false,
+      docCells: normalizeDocCells(template.docCells),
+      activeCellId: null,
     });
   },
 
@@ -123,6 +142,8 @@ export const createCanvasSlice = (set, get) => ({
       isDirty: false,
       selectedNode: null,
       isDetailOpen: false,
+      docCells: [{ id: uuidv4(), text: '', nodeIds: [] }],
+      activeCellId: null,
     });
   },
 });

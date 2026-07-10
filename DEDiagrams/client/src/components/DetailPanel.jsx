@@ -258,14 +258,19 @@ export default function DetailPanel() {
           <div style={{
             width: 40, height: 40, borderRadius: 6, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-            background: component.bg || P.surface,
+            background: component.logo ? '#fff' : (component.bg || P.surface),
             border: `1.5px solid ${(component.color || category.color) + '44'}`,
+            padding: component.logo ? 6 : 0,
           }}>
-            <span style={{ color: component.color || category.color }}>
-              {component.type === 'custom_box'
-                ? (selectedNode.data?.iconEmoji || '🔲')
-                : (component.iconEmoji || '⚡')}
-            </span>
+            {component.logo ? (
+              <img src={component.logo} alt={component.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            ) : (
+              <span style={{ color: component.color || category.color }}>
+                {component.type === 'custom_box'
+                  ? (selectedNode.data?.iconEmoji || '🔲')
+                  : (component.iconEmoji || '⚡')}
+              </span>
+            )}
           </div>
           <div>
             <h2 style={{ fontSize: 14, fontWeight: 700, color: P.text, marginBottom: 4 }}>

@@ -54,7 +54,8 @@ export default function DiagramCanvas() {
   } = useStore();
 
   const {
-    isDrawingMode, penColor, penWidth, drawingStrokes, addStroke,
+    isDrawingMode, drawTool, penColor, penWidth, eraserSize,
+    drawingStrokes, addStroke, eraseStrokesAt, snapshot,
   } = useStore();
   const P = useTheme();
 
@@ -78,30 +79,54 @@ export default function DiagramCanvas() {
   const ptsToStr = (pts) => pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
 
   const onDrawPointerDown = useCallback((e) => {
-    if (!isDrawingMode) return;
+    if (!isDrawingMode || e.button !== 0) return;
     e.preventDefault();
     isDrawingRef.current = true;
     const pt = toCanvasXY(e);
-    currentPtsRef.current = [pt, pt]; // duplicate so polyline renders a dot
-    if (liveLineRef.current) liveLineRef.current.setAttribute('points', ptsToStr(currentPtsRef.current));
+    if (drawTool === 'eraser') {
+      snapshot();
+      eraseStrokesAt(pt, eraserSize / 2);
+    } else {
+      currentPtsRef.current = [pt, pt]; // duplicate so polyline renders a dot
+      if (liveLineRef.current) liveLineRef.current.setAttribute('points', ptsToStr(currentPtsRef.current));
+    }
     e.currentTarget.setPointerCapture(e.pointerId);
-  }, [isDrawingMode, toCanvasXY]);
+  }, [isDrawingMode, drawTool, eraserSize, toCanvasXY, snapshot, eraseStrokesAt]);
 
   const onDrawPointerMove = useCallback((e) => {
     if (!isDrawingRef.current) return;
-    currentPtsRef.current.push(toCanvasXY(e));
-    if (liveLineRef.current) liveLineRef.current.setAttribute('points', ptsToStr(currentPtsRef.current));
-  }, [toCanvasXY]);
+    const pt = toCanvasXY(e);
+    if (drawTool === 'eraser') {
+      eraseStrokesAt(pt, eraserSize / 2);
+    } else {
+      currentPtsRef.current.push(pt);
+      if (liveLineRef.current) liveLineRef.current.setAttribute('points', ptsToStr(currentPtsRef.current));
+    }
+  }, [drawTool, eraserSize, toCanvasXY, eraseStrokesAt]);
 
-  const onDrawPointerUp = useCallback(() => {
+  const onDrawPointerUp = useCallback((e) => {
     if (!isDrawingRef.current) return;
     isDrawingRef.current = false;
-    if (currentPtsRef.current.length > 1) {
+    if (drawTool !== 'eraser' && currentPtsRef.current.length > 1) {
       addStroke({ points: [...currentPtsRef.current], color: penColor, width: penWidth });
     }
     currentPtsRef.current = [];
     if (liveLineRef.current) liveLineRef.current.setAttribute('points', '');
-  }, [addStroke, penColor, penWidth]);
+    if (e?.currentTarget?.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  }, [drawTool, addStroke, penColor, penWidth]);
+
+  // Safety net: if drawing mode is toggled off mid-stroke (or a pointer sequence
+  // gets cancelled by the browser, e.g. a right-click context menu, without a
+  // matching pointerup), don't leave a half-finished stroke capturing input forever.
+  useEffect(() => {
+    if (!isDrawingMode) {
+      isDrawingRef.current = false;
+      currentPtsRef.current = [];
+      if (liveLineRef.current) liveLineRef.current.setAttribute('points', '');
+    }
+  }, [isDrawingMode]);
 
   const onNodeClick = useCallback((_, node) => {
     selectNode(node);
@@ -234,7 +259,7 @@ export default function DiagramCanvas() {
         maxZoom={3}
         fitView
         fitViewOptions={{ padding: 0.2 }}
-        deleteKeyCode="Delete"
+        deleteKeyCode={['Delete', 'Backspace']}
         multiSelectionKeyCode="Shift"
         style={{ background: P.canvas }}
         connectionLineStyle={{ stroke: P.amber, strokeWidth: 2 }}
@@ -319,7 +344,7 @@ export default function DiagramCanvas() {
         style={{
           position: 'absolute', inset: 0, width: '100%', height: '100%',
           pointerEvents: isDrawingMode ? 'all' : 'none',
-          cursor: isDrawingMode ? 'crosshair' : 'default',
+          cursor: isDrawingMode ? (drawTool === 'eraser' ? 'cell' : 'crosshair') : 'default',
           zIndex: 10,
           touchAction: 'none',
         }}
@@ -327,6 +352,8 @@ export default function DiagramCanvas() {
         onPointerMove={onDrawPointerMove}
         onPointerUp={onDrawPointerUp}
         onPointerLeave={onDrawPointerUp}
+        onPointerCancel={onDrawPointerUp}
+        onContextMenu={(e) => e.preventDefault()}
       >
         <g transform={`translate(${viewport.x},${viewport.y}) scale(${viewport.zoom})`}>
           {drawingStrokes.map((s, i) => (

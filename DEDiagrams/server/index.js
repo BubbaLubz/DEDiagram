@@ -159,11 +159,12 @@ app.get('/api/diagrams/:id', (req, res) => {
 });
 
 app.post('/api/diagrams', (req, res) => {
-  const { name, description, nodes, edges, isTemplate } = req.body;
+  const { name, description, nodes, edges, docCells, isTemplate } = req.body;
   if (!name || !nodes) return res.status(400).json({ error: 'name and nodes required' });
   const diagrams = readDiagrams();
   const d = { id: uuidv4(), name, description: description || '', nodes, edges: edges || [],
-    isTemplate: isTemplate || false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    docCells: docCells || [], isTemplate: isTemplate || false,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
   diagrams.push(d);
   writeDiagrams(diagrams);
   res.status(201).json(d);

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import {
   Save, FolderOpen, Trash2, AlignLeft, Download,
   Maximize, RotateCcw, Wand2, DollarSign, Image, Upload,
-  Pencil, Undo2,
+  Pencil, Eraser, Undo2,
 } from 'lucide-react';
 import useStore from '../store';
 import { useCanvasActions } from '../context/CanvasActionsContext';
@@ -26,8 +26,8 @@ export default function Toolbar() {
     selectedNode, edges, updateEdgeData, nodes, deleteSelected,
     openGenerateModal, toggleCostPanel, isCostPanelOpen,
     loadTemplate,
-    isDrawingMode, toggleDrawingMode, penColor, setPenColor,
-    penWidth, setPenWidth, undoLastStroke, clearDrawing, drawingStrokes,
+    isDrawingMode, toggleDrawingMode, drawTool, setDrawTool, penColor, setPenColor,
+    penWidth, setPenWidth, eraserSize, setEraserSize, undoLastStroke, clearDrawing, drawingStrokes,
     openAccountSettings,
   } = useStore();
 
@@ -60,7 +60,7 @@ export default function Toolbar() {
       try {
         const data = JSON.parse(ev.target.result);
         if (!Array.isArray(data.nodes)) throw new Error('Missing nodes array');
-        loadTemplate({ name: data.name || file.name.replace(/\.json$/i, ''), nodes: data.nodes, edges: data.edges || [] });
+        loadTemplate({ name: data.name || file.name.replace(/\.json$/i, ''), nodes: data.nodes, edges: data.edges || [], docCells: data.docCells || [] });
       } catch {
         alert('Could not import: file is not a valid diagram JSON.');
       }
@@ -70,8 +70,8 @@ export default function Toolbar() {
   };
 
   const handleExportJSON = () => {
-    const { nodes, edges } = useStore.getState();
-    const data = JSON.stringify({ name: currentDiagramName, nodes, edges }, null, 2);
+    const { nodes, edges, docCells } = useStore.getState();
+    const data = JSON.stringify({ name: currentDiagramName, nodes, edges, docCells }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -157,47 +157,79 @@ export default function Toolbar() {
         <PenToggleBtn active={isDrawingMode} onClick={toggleDrawingMode}/>
         {isDrawingMode && (
           <>
-            {/* Color swatch + hex input */}
-            <label style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Pick color">
-              <div style={{
-                width: 18, height: 18, borderRadius: 3, background: penColor,
-                border: `1.5px solid ${P.divider}`, flexShrink: 0, cursor: 'pointer',
-              }}/>
-              <input
-                type="color"
-                value={penColor}
-                onChange={e => setPenColor(e.target.value)}
-                style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
-                tabIndex={-1}
-              />
-            </label>
-            <input
-              type="text"
-              value={penColor}
-              onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setPenColor(e.target.value); }}
-              style={{
-                width: 72, fontSize: 11, fontFamily: 'monospace',
-                background: '#F7F4EF', border: `1px solid ${P.divider}`, borderRadius: 3,
-                padding: '2px 6px', color: P.text, outline: 'none', letterSpacing: '0.04em',
-              }}
-            />
-            {/* Width dots */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              {[2, 4, 7].map(w => (
-                <button
-                  key={w}
-                  onClick={() => setPenWidth(w)}
-                  title={`Stroke width ${w}`}
-                  style={{
-                    width: 20, height: 20, borderRadius: 3, border: `1px solid ${penWidth === w ? P.amber + '88' : P.divider}`,
-                    background: penWidth === w ? P.amber + '18' : 'transparent',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  <div style={{ width: w + 2, height: w + 2, borderRadius: '50%', background: penWidth === w ? P.amber : P.faint }}/>
-                </button>
-              ))}
+            {/* Pen vs eraser */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <SubToolBtn active={drawTool === 'pen'} onClick={() => setDrawTool('pen')} title="Pen" Icon={Pencil}/>
+              <SubToolBtn active={drawTool === 'eraser'} onClick={() => setDrawTool('eraser')} title="Eraser" Icon={Eraser}/>
             </div>
+
+            {drawTool === 'pen' ? (
+              <>
+                {/* Color swatch + hex input */}
+                <label style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Pick color">
+                  <div style={{
+                    width: 18, height: 18, borderRadius: 3, background: penColor,
+                    border: `1.5px solid ${P.divider}`, flexShrink: 0, cursor: 'pointer',
+                  }}/>
+                  <input
+                    type="color"
+                    value={penColor}
+                    onChange={e => setPenColor(e.target.value)}
+                    style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+                    tabIndex={-1}
+                  />
+                </label>
+                <input
+                  type="text"
+                  value={penColor}
+                  onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setPenColor(e.target.value); }}
+                  style={{
+                    width: 72, fontSize: 11, fontFamily: 'monospace',
+                    background: '#F7F4EF', border: `1px solid ${P.divider}`, borderRadius: 3,
+                    padding: '2px 6px', color: P.text, outline: 'none', letterSpacing: '0.04em',
+                  }}
+                />
+                {/* Width dots */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  {[2, 4, 7].map(w => (
+                    <button
+                      key={w}
+                      onClick={() => setPenWidth(w)}
+                      title={`Stroke width ${w}`}
+                      style={{
+                        width: 20, height: 20, borderRadius: 3, border: `1px solid ${penWidth === w ? P.amber + '88' : P.divider}`,
+                        background: penWidth === w ? P.amber + '18' : 'transparent',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      <div style={{ width: w + 2, height: w + 2, borderRadius: '50%', background: penWidth === w ? P.amber : P.faint }}/>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              /* Eraser size dots */
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                {[12, 20, 32].map(sz => (
+                  <button
+                    key={sz}
+                    onClick={() => setEraserSize(sz)}
+                    title={`Eraser size ${sz}`}
+                    style={{
+                      width: 20, height: 20, borderRadius: 3, border: `1px solid ${eraserSize === sz ? P.amber + '88' : P.divider}`,
+                      background: eraserSize === sz ? P.amber + '18' : 'transparent',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <div style={{
+                      width: sz / 3, height: sz / 3, borderRadius: '50%',
+                      border: `1.5px solid ${eraserSize === sz ? P.amber : P.faint}`,
+                    }}/>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {drawingStrokes.length > 0 && (
               <>
                 <TBtn onClick={undoLastStroke} title="Undo last stroke" Icon={Undo2}/>
@@ -346,6 +378,29 @@ function PenToggleBtn({ active, onClick }) {
     >
       <Pencil size={13}/>
       {active ? 'Drawing' : 'Draw'}
+    </button>
+  );
+}
+
+function SubToolBtn({ active, onClick, title, Icon }) {
+  const P = useTheme();
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 24, height: 24, borderRadius: 3,
+        cursor: 'pointer', transition: 'all 0.12s',
+        color: active ? P.amber : hover ? P.text : P.muted,
+        background: active ? P.amber + '18' : hover ? P.hover : 'transparent',
+        border: `1px solid ${active ? P.amber + '66' : 'transparent'}`,
+      }}
+    >
+      <Icon size={13}/>
     </button>
   );
 }

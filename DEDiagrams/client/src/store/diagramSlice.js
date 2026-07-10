@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { normalizeDocCells } from './canvasSlice';
 
 export const createDiagramSlice = (set, get) => ({
   // State
@@ -19,17 +20,17 @@ export const createDiagramSlice = (set, get) => ({
   },
 
   saveDiagram: async (name, description, isTemplate) => {
-    const { nodes, edges, currentDiagramId } = get();
+    const { nodes, edges, docCells, currentDiagramId } = get();
     try {
       let result;
       if (currentDiagramId) {
         const { data } = await axios.put(`/api/diagrams/${currentDiagramId}`, {
-          name, description, nodes, edges, isTemplate,
+          name, description, nodes, edges, docCells, isTemplate,
         });
         result = data;
       } else {
         const { data } = await axios.post('/api/diagrams', {
-          name, description, nodes, edges, isTemplate,
+          name, description, nodes, edges, docCells, isTemplate,
         });
         result = data;
       }
@@ -48,6 +49,8 @@ export const createDiagramSlice = (set, get) => ({
       set({
         nodes: data.nodes || [],
         edges: data.edges || [],
+        docCells: normalizeDocCells(data.docCells),
+        activeCellId: null,
         currentDiagramId: data.id,
         currentDiagramName: data.name,
         isDirty: false,

@@ -2,6 +2,7 @@ import { memo, useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { Handle, Position } from 'reactflow';
 import { COMPONENTS, getCategory } from '../../data/componentLibrary';
+import useStore from '../../store';
 
 const DefaultIcon = ({ color, iconText }) => (
   <svg viewBox="0 0 32 32" className="w-full h-full">
@@ -21,10 +22,13 @@ const CustomBoxIcon = ({ color }) => (
   </svg>
 );
 
-function ComponentNode({ data, selected }) {
+function ComponentNode({ id, data, selected }) {
   const [hovered, setHovered] = useState(false);
   const component = COMPONENTS[data.componentType] || {};
   const category = getCategory(component.category);
+
+  // Pulses when this node is the one described by the doc panel's active cell.
+  const isDocActive = useStore(s => s.docCells.find(c => c.id === s.activeCellId)?.nodeIds?.includes(id) ?? false);
 
   const isCustomBox = data.componentType === 'custom_box';
   const LucideIcon = !isCustomBox && component.lucideIcon
@@ -33,28 +37,23 @@ function ComponentNode({ data, selected }) {
 
   return (
     <div
-      className={`relative rounded-xl border-2 transition-all duration-200 cursor-pointer select-none`}
+      className={`relative rounded-xl border-2 transition-all duration-200 cursor-pointer select-none ${isDocActive ? 'doc-cell-active-node' : ''}`}
       style={{
         width: 200,
         borderColor: selected ? category.color : hovered ? category.color + 'aa' : '#30363d',
         background: selected
           ? `linear-gradient(135deg, #1c2333, ${component.bg || '#1c2333'})`
           : `#1c2333`,
-        boxShadow: selected
+        boxShadow: isDocActive ? undefined : selected
           ? `0 0 0 2px ${category.color}44, 0 8px 24px rgba(0,0,0,0.4)`
           : hovered
           ? `0 4px 16px rgba(0,0,0,0.3)`
           : `0 2px 8px rgba(0,0,0,0.2)`,
+        ...(isDocActive ? { '--doc-pulse-color': `${category.color}90` } : {}),
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Category accent bar */}
-      <div
-        className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl"
-        style={{ background: `linear-gradient(90deg, ${category.color}, ${category.color}44)` }}
-      />
-
       <Handle
         type="target"
         position={Position.Left}
@@ -73,6 +72,10 @@ function ComponentNode({ data, selected }) {
               ) : (
                 <CustomBoxIcon color={component.color || category.color} />
               )
+            ) : component.logo ? (
+              <div className="w-full h-full flex items-center justify-center rounded-lg p-1.5" style={{ background: '#fff' }}>
+                <img src={component.logo} alt={component.label} className="w-full h-full object-contain" />
+              </div>
             ) : LucideIcon ? (
               <div
                 className="w-full h-full flex items-center justify-center rounded-lg"
