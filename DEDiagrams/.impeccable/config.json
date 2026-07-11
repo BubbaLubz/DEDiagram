@@ -1,0 +1,10 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [
+      "client/src/data/componentLibrary.js",
+      "client/src/components/DetailPanel.jsx"
+    ],
+    "ignoreValues": []
+  }
+}

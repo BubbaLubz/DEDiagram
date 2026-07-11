@@ -2,13 +2,14 @@ import { memo, useState, useRef, useEffect } from 'react';
 import { getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
 import useStore from '../../store';
 
+// Earth-tone palette matching Toolbar.jsx's edge-type dropdown (DESIGN.md).
 const EDGE_STYLES = {
-  batch:     { color: '#94a3b8', strokeDasharray: 'none', animated: false, label: 'batch' },
-  streaming: { color: '#3b82f6', strokeDasharray: '8 4',  animated: true,  label: 'stream' },
-  api:       { color: '#a855f7', strokeDasharray: '3 3',  animated: false, label: 'API' },
-  cdc:       { color: '#ef4444', strokeDasharray: '6 3',  animated: true,  label: 'CDC' },
-  event:     { color: '#f59e0b', strokeDasharray: '8 3',  animated: true,  label: 'event' },
-  sql:       { color: '#10b981', strokeDasharray: 'none', animated: false, label: 'SQL' },
+  batch:     { color: '#8A8275', strokeDasharray: 'none', animated: false, label: 'batch' },
+  streaming: { color: '#5B7A8C', strokeDasharray: '8 4',  animated: true,  label: 'stream' },
+  api:       { color: '#7D6088', strokeDasharray: '3 3',  animated: false, label: 'API' },
+  cdc:       { color: '#A3502B', strokeDasharray: '6 3',  animated: true,  label: 'CDC' },
+  event:     { color: '#C99A3E', strokeDasharray: '8 3',  animated: true,  label: 'event' },
+  sql:       { color: '#5C7A4A', strokeDasharray: 'none', animated: false, label: 'SQL' },
 };
 
 const DEFAULT_MARKER = 'url(#react-flow__arrowclosed)';
@@ -89,7 +90,7 @@ function LabeledEdge({
               onMouseDown={(e) => e.stopPropagation()}
               size={Math.max(editValue.length, 4)}
               style={{
-                background: '#0d1117',
+                background: '#171310',
                 color: style.color,
                 border: `1px solid ${style.color}`,
                 borderRadius: '999px',
@@ -109,7 +110,7 @@ function LabeledEdge({
               title="Double-click to edit"
               className="text-xs font-medium px-1.5 py-0.5 rounded-full border cursor-text"
               style={{
-                background: '#0d1117',
+                background: '#171310',
                 color: style.color,
                 borderColor: style.color + '66',
                 fontSize: '10px',

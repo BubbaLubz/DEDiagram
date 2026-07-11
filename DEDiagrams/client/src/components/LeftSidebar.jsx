@@ -14,8 +14,10 @@ const TABS = [
 function DraggableComponent({ comp }) {
   const P = useTheme();
   const [hover, setHover] = useState(false);
+  const [pressed, setPressed] = useState(false);
 
   const handleDragStart = (e) => {
+    setPressed(false);
     e.dataTransfer.setData('application/de-component', JSON.stringify({ componentType: comp.type, label: comp.label }));
     e.dataTransfer.effectAllowed = 'copy';
   };
@@ -25,13 +27,16 @@ function DraggableComponent({ comp }) {
       draggable
       onDragStart={handleDragStart}
       onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '7px 12px', cursor: 'grab', borderRadius: 4,
         background: hover ? P.hover : 'transparent',
         border: `1px solid ${hover ? P.divider : 'transparent'}`,
-        transition: 'all 0.12s',
+        transform: pressed ? 'scale(0.97)' : 'scale(1)',
+        transition: 'transform 0.1s, background 0.12s, border-color 0.12s',
       }}
     >
       <div style={{
@@ -73,7 +78,7 @@ function ComponentsTab() {
       <div style={{ padding: '8px 8px 6px', borderBottom: `1px solid ${P.divider}`, marginBottom: 4 }}>
         <DraggableComponent comp={{
           type: 'custom_box', label: 'Custom Box', tagline: 'Blank box — name & describe freely',
-          color: '#9B8B7A', bg: P.surface, iconEmoji: '🔲',
+          color: '#8A8275', bg: P.surface, iconEmoji: '🔲',
         }}/>
       </div>
       <p style={{ fontSize: 11, color: P.faint, padding: '8px 16px 6px' }}>Drag components onto the canvas</p>
@@ -84,10 +89,12 @@ function ComponentsTab() {
             style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '7px 16px', background: 'none', border: 'none', cursor: 'pointer',
-              transition: 'background 0.1s',
+              transition: 'background 0.1s, transform 0.1s',
             }}
             onMouseEnter={e => e.currentTarget.style.background = P.hover}
-            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.transform = 'scale(1)'; }}
+            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }}/>
@@ -136,21 +143,27 @@ function TemplatesTab() {
 function TemplateCard({ tpl, onLoad }) {
   const P = useTheme();
   const [hover, setHover] = useState(false);
+  const [pressed, setPressed] = useState(false);
   return (
     <div
       onClick={onLoad}
       onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
       style={{
-        border: `1px solid ${P.divider}`,
-        borderLeft: `3px solid ${tpl.color}`,
+        border: `1px solid ${hover ? tpl.color + '66' : P.divider}`,
         padding: '12px 14px', cursor: 'pointer',
         background: hover ? P.hover : P.surface,
-        transition: 'all 0.15s', borderRadius: 3,
+        transform: pressed ? 'scale(0.97)' : 'scale(1)',
+        transition: 'transform 0.1s, background 0.15s, border-color 0.15s', borderRadius: 3,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-        <h3 style={{ fontSize: 13, fontWeight: 600, color: P.text }}>{tpl.name}</h3>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: P.text }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: tpl.color, flexShrink: 0 }}/>
+          {tpl.name}
+        </h3>
         <span style={{
           fontSize: 10, padding: '2px 8px', borderRadius: 2, flexShrink: 0,
           background: tpl.color + '22', color: tpl.color, fontWeight: 500,
@@ -220,16 +233,20 @@ function SavedTab() {
 function SavedCard({ d, onLoad, onDelete }) {
   const P = useTheme();
   const [hover, setHover] = useState(false);
+  const [pressed, setPressed] = useState(false);
   return (
     <div
       onClick={onLoad}
       onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
       style={{
         border: `1px solid ${hover ? P.amber + '66' : P.divider}`,
         padding: '10px 12px', cursor: 'pointer', borderRadius: 3,
         background: hover ? P.hover : P.surface,
-        transition: 'all 0.15s',
+        transform: pressed ? 'scale(0.97)' : 'scale(1)',
+        transition: 'transform 0.1s, background 0.15s, border-color 0.15s',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
@@ -261,13 +278,37 @@ function SavedCard({ d, onLoad, onDelete }) {
           style={{
             padding: 6, borderRadius: 3, border: 'none', cursor: 'pointer',
             opacity: hover ? 1 : 0, background: 'none',
-            color: '#B03A2E', transition: 'opacity 0.15s',
+            color: P.danger, transition: 'opacity 0.15s',
           }}
         >
           <Trash2 size={12}/>
         </button>
       </div>
     </div>
+  );
+}
+
+function SidebarTabButton({ id, label, Icon, activeTab, setActiveTab, P }) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <button
+      onClick={() => setActiveTab(id)}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onMouseLeave={() => setPressed(false)}
+      style={{
+        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+        padding: '9px 4px', fontSize: 11, fontWeight: 500, cursor: 'pointer',
+        background: 'none', border: 'none',
+        borderBottom: `2px solid ${activeTab === id ? P.amber : 'transparent'}`,
+        color: activeTab === id ? P.amber : P.muted,
+        transform: pressed ? 'scale(0.94)' : 'scale(1)',
+        transition: 'transform 0.1s, color 0.15s, border-color 0.15s',
+      }}
+    >
+      <Icon size={13}/>
+      {label}
+    </button>
   );
 }
 
@@ -287,21 +328,7 @@ export default function LeftSidebar() {
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: `1px solid ${P.divider}`, flexShrink: 0 }}>
         {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setActiveTab(id)}
-            style={{
-              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-              padding: '9px 4px', fontSize: 11, fontWeight: 500, cursor: 'pointer',
-              background: 'none', border: 'none',
-              borderBottom: `2px solid ${activeTab === id ? P.amber : 'transparent'}`,
-              color: activeTab === id ? P.amber : P.muted,
-              transition: 'all 0.15s',
-            }}
-          >
-            <Icon size={13}/>
-            {label}
-          </button>
+          <SidebarTabButton key={id} id={id} label={label} Icon={Icon} activeTab={activeTab} setActiveTab={setActiveTab} P={P}/>
         ))}
       </div>
 

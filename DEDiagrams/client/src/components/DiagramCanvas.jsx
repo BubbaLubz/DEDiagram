@@ -13,13 +13,14 @@ import LabeledEdge from './edges/LabeledEdge';
 import useStore from '../store';
 import { CanvasActionsContext } from '../context/CanvasActionsContext';
 import { useTheme } from '../theme';
+import { COMPONENTS, getCategory } from '../data/componentLibrary';
 
 const nodeTypes = { component: ComponentNode };
 const edgeTypes = { labeled: LabeledEdge };
 
 const defaultEdgeOptions = {
   type: 'labeled',
-  markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#94a3b8' },
+  markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#8A8275' },
   data: { label: 'batch', edgeType: 'batch' },
 };
 
@@ -184,7 +185,7 @@ export default function DiagramCanvas() {
     const viewport = document.querySelector('.react-flow__viewport');
     if (!viewport) return;
     toPng(viewport, {
-      backgroundColor: '#0d1117',
+      backgroundColor: '#171310',
       width: imageWidth,
       height: imageHeight,
       style: {
@@ -261,7 +262,7 @@ export default function DiagramCanvas() {
         fitViewOptions={{ padding: 0.2 }}
         deleteKeyCode={['Delete', 'Backspace']}
         multiSelectionKeyCode="Shift"
-        style={{ background: P.canvas }}
+        style={{ background: '#171310' }}
         connectionLineStyle={{ stroke: P.amber, strokeWidth: 2 }}
         connectionLineType="bezier"
       >
@@ -269,13 +270,13 @@ export default function DiagramCanvas() {
           variant={BackgroundVariant.Dots}
           gap={30}
           size={1}
-          color={P.divider}
+          color="#3A2E22"
         />
 
         <Controls
           style={{
-            background: '#161b22',
-            border: '1px solid #30363d',
+            background: '#241E18',
+            border: '1px solid #4A3B2C',
             borderRadius: 8,
           }}
           showInteractive={false}
@@ -283,33 +284,16 @@ export default function DiagramCanvas() {
 
         <MiniMap
           style={{
-            background: '#0d1117',
-            border: '1px solid #30363d',
+            background: '#171310',
+            border: '1px solid #4A3B2C',
             borderRadius: 8,
           }}
           nodeColor={(n) => {
             const componentType = n.data?.componentType;
-            if (!componentType) return P.divider;
-            const colors = {
-              source: '#3b82f6', ingestion: '#f97316', streaming: '#f59e0b',
-              processing: '#a855f7', orchestration: '#06b6d4', storage: '#22c55e',
-              warehouse: '#29b5e8', serving: '#ec4899',
-            };
-            const categories = {
-              postgresql: 'source', mysql: 'source', mongodb: 'source',
-              rest_api: 'source', files_s3: 'source',
-              debezium: 'ingestion', fivetran: 'ingestion', airbyte: 'ingestion', kinesis: 'ingestion',
-              kafka: 'streaming', rabbitmq: 'streaming',
-              spark: 'processing', flink: 'processing', dbt: 'processing',
-              databricks: 'processing', aws_glue: 'processing',
-              airflow: 'orchestration', prefect: 'orchestration', dagster: 'orchestration',
-              s3: 'storage', adls: 'storage', delta_lake: 'storage', iceberg: 'storage', hdfs: 'storage',
-              snowflake: 'warehouse', bigquery: 'warehouse', redshift: 'warehouse', azure_synapse: 'warehouse',
-              tableau: 'serving', looker: 'serving', power_bi: 'serving', superset: 'serving', redis: 'serving',
-            };
-            return colors[categories[componentType]] || '#30363d';
+            const category = getCategory(COMPONENTS[componentType]?.category);
+            return category?.color || '#4A3B2C';
           }}
-          maskColor="rgba(0,0,0,0.6)"
+          maskColor="rgba(23,19,16,0.6)"
         />
 
         {/* Empty state */}

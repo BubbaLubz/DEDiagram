@@ -9,28 +9,33 @@
 }
 
 /* ── Theme variables ───────────────────────────────────────────────────────── */
+/* Palette from DESIGN.md — two reference photos of Japanese minimalist
+   architecture. Warm plaster/wood chrome, always-warm shadows (never pure
+   black — see the Warm Shadow Rule), no gradients anywhere (No-Gradient Rule). */
 :root {
-  --rf-ctrl-bg:          #EDE9E2;
-  --rf-ctrl-border:      #D9D3CB;
-  --rf-ctrl-color:       #7A726A;
-  --rf-ctrl-hover-bg:    #D9D3CB;
-  --rf-ctrl-hover-color: #1C1814;
-  --rf-minimap-bg:       #EDE9E2;
-  --rf-minimap-border:   #D9D3CB;
-  --rf-minimap-mask:     rgba(28,24,20,0.12);
-  --body-bg:             #F5F0E8;
+  --rf-ctrl-bg:          #E7DFD0;
+  --rf-ctrl-border:      #D2C6AF;
+  --rf-ctrl-color:       #7C7264;
+  --rf-ctrl-hover-bg:    #D2C6AF;
+  --rf-ctrl-hover-color: #241F19;
+  --rf-minimap-bg:       #E7DFD0;
+  --rf-minimap-border:   #D2C6AF;
+  --rf-minimap-mask:     rgba(23,19,16,0.14);
+  --body-bg:             #F1EBDF;
+  --grain-texture:       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --washi-texture:       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.15 0.4' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)'/%3E%3C/svg%3E");
 }
 
 html[data-theme="dark"] {
-  --rf-ctrl-bg:          #22272e;
-  --rf-ctrl-border:      #373e47;
-  --rf-ctrl-color:       #8b949e;
-  --rf-ctrl-hover-bg:    #373e47;
-  --rf-ctrl-hover-color: #cdd9e5;
-  --rf-minimap-bg:       #1c2028;
-  --rf-minimap-border:   #373e47;
-  --rf-minimap-mask:     rgba(0,0,0,0.45);
-  --body-bg:             #161b22;
+  --rf-ctrl-bg:          #262019;
+  --rf-ctrl-border:      #453B2F;
+  --rf-ctrl-color:       #9C8F7C;
+  --rf-ctrl-hover-bg:    #453B2F;
+  --rf-ctrl-hover-color: #E8DFD0;
+  --rf-minimap-bg:       #1C1815;
+  --rf-minimap-border:   #453B2F;
+  --rf-minimap-mask:     rgba(0,0,0,0.5);
+  --body-bg:             #1C1815;
 }
 
 html, body, #root {
@@ -38,9 +43,54 @@ html, body, #root {
   width: 100%;
   overflow: hidden;
   background: var(--body-bg);
-  color: #1C1814;
-  font-family: 'Inter', system-ui, sans-serif;
+  color: #241F19;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+html[data-theme="dark"] body {
+  color: #E8DFD0;
+}
+
+/* ── Texture utilities (DESIGN.md §5 — near-subliminal, felt not seen) ──────── */
+.bg-grain {
+  position: relative;
+}
+.bg-grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--grain-texture);
+  opacity: 0.03;
+}
+
+.bg-board-seam {
+  position: relative;
+}
+.bg-board-seam::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(90deg, currentColor 0, currentColor 1px, transparent 1px, transparent 24px);
+  opacity: 0.05;
+  color: #241F19;
+}
+html[data-theme="dark"] .bg-board-seam::before {
+  color: #E8DFD0;
+}
+
+.bg-washi {
+  position: relative;
+}
+.bg-washi::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--washi-texture);
+  opacity: 0.05;
 }
 
 .react-flow__node {
@@ -107,11 +157,11 @@ path.react-flow__edge-path.animated-edge {
 /* Scrollbars */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #D9D3CB; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #B0A89E; }
+::-webkit-scrollbar-thumb { background: #D2C6AF; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #A79A87; }
 
-html[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #373e47; }
-html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #545d68; }
+html[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #453B2F; }
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #6E6355; }
 
 /* Selection */
 .react-flow__node.selected > div {

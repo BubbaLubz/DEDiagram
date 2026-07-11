@@ -16,7 +16,7 @@ const db = {
     const { data, error } = await supabase
       .from('diagrams')
       .select(`
-        id, name, description, is_template, created_at, updated_at,
+        id, name, description, is_template, created_at, updated_at, nodes, edges,
         diagram_permissions!inner(role)
       `)
       .eq('diagram_permissions.user_id', userId);
@@ -29,6 +29,9 @@ const db = {
       createdAt: d.created_at,
       updatedAt: d.updated_at,
       role: d.diagram_permissions[0]?.role,
+      // Lightweight shape for thumbnail rendering — not the full node data
+      nodes: (d.nodes || []).map(n => ({ id: n.id, position: n.position, componentType: n.data?.componentType })),
+      edges: (d.edges || []).map(e => ({ source: e.source, target: e.target })),
     }));
   },
 
@@ -49,6 +52,7 @@ const db = {
       description: data.description,
       nodes: data.nodes,
       edges: data.edges,
+      docCells: data.doc_cells || [],
       isTemplate: data.is_template,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
@@ -56,14 +60,14 @@ const db = {
     };
   },
 
-  async createDiagram({ name, description, nodes, edges, isTemplate, ownerId }) {
+  async createDiagram({ name, description, nodes, edges, docCells, isTemplate, ownerId }) {
     const supabase = getSupabase();
     // Ensure user exists
     await db.upsertUser({ id: ownerId });
     const { data: diagram, error } = await supabase
       .from('diagrams')
       .insert({ name, description: description || '', nodes, edges: edges || [],
-        is_template: isTemplate || false, owner_id: ownerId })
+        doc_cells: docCells || [], is_template: isTemplate || false, owner_id: ownerId })
       .select()
       .single();
     if (error) throw error;
@@ -73,7 +77,7 @@ const db = {
     });
     return {
       id: diagram.id, name: diagram.name, description: diagram.description,
-      nodes: diagram.nodes, edges: diagram.edges,
+      nodes: diagram.nodes, edges: diagram.edges, docCells: diagram.doc_cells || [],
       isTemplate: diagram.is_template,
       createdAt: diagram.created_at, updatedAt: diagram.updated_at,
     };
@@ -89,12 +93,13 @@ const db = {
     if (updates.description !== undefined) dbUpdates.description = updates.description;
     if (updates.nodes !== undefined) dbUpdates.nodes = updates.nodes;
     if (updates.edges !== undefined) dbUpdates.edges = updates.edges;
+    if (updates.docCells !== undefined) dbUpdates.doc_cells = updates.docCells;
     if (updates.isTemplate !== undefined) dbUpdates.is_template = updates.isTemplate;
     const { data, error } = await supabase
       .from('diagrams').update(dbUpdates).eq('id', id).select().single();
     if (error) return null;
     return { id: data.id, name: data.name, description: data.description,
-      nodes: data.nodes, edges: data.edges, isTemplate: data.is_template,
+      nodes: data.nodes, edges: data.edges, docCells: data.doc_cells || [], isTemplate: data.is_template,
       createdAt: data.created_at, updatedAt: data.updated_at };
   },
 
@@ -183,6 +188,23 @@ const db = {
     const { data, error } = await supabase.from('snapshots')
       .select('*').eq('id', snapshotId).single();
     if (error) return null;
+    return data;
+  },
+
+  // User search (invite-by-user flow) — ILIKE with a leading wildcard is
+  // accelerated by the pg_trgm GIN index from migration 004, not a plain
+  // btree, which is why this is fast even as the users table grows.
+  async searchUsers(query, excludeUserId) {
+    const supabase = getSupabase();
+    const safe = query.replace(/[,()%]/g, '').trim();
+    if (!safe) return [];
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, display_name, email, avatar_url')
+      .or(`display_name.ilike.%${safe}%,email.ilike.%${safe}%`)
+      .neq('id', excludeUserId)
+      .limit(8);
+    if (error) throw error;
     return data;
   },
 

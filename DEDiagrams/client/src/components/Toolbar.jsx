@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Save, FolderOpen, Trash2, AlignLeft, Download,
   Maximize, RotateCcw, Wand2, DollarSign, Image, Upload,
-  Pencil, Eraser, Undo2,
+  Pencil, Eraser, Undo2, ArrowLeft, Users,
 } from 'lucide-react';
 import useStore from '../store';
 import { useCanvasActions } from '../context/CanvasActionsContext';
@@ -10,12 +11,12 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme';
 
 const EDGE_TYPES = [
-  { value: 'batch',     label: 'Batch',     color: '#6B7280' },
-  { value: 'streaming', label: 'Streaming', color: '#3B82F6' },
-  { value: 'api',       label: 'API',       color: '#8B5CF6' },
-  { value: 'cdc',       label: 'CDC',       color: '#EF4444' },
-  { value: 'event',     label: 'Event',     color: '#F59E0B' },
-  { value: 'sql',       label: 'SQL',       color: '#10B981' },
+  { value: 'batch',     label: 'Batch',     color: '#8A8275' },
+  { value: 'streaming', label: 'Streaming', color: '#5B7A8C' },
+  { value: 'api',       label: 'API',       color: '#7D6088' },
+  { value: 'cdc',       label: 'CDC',       color: '#A3502B' },
+  { value: 'event',     label: 'Event',     color: '#C99A3E' },
+  { value: 'sql',       label: 'SQL',       color: '#5C7A4A' },
 ];
 
 export default function Toolbar() {
@@ -28,10 +29,11 @@ export default function Toolbar() {
     loadTemplate,
     isDrawingMode, toggleDrawingMode, drawTool, setDrawTool, penColor, setPenColor,
     penWidth, setPenWidth, eraserSize, setEraserSize, undoLastStroke, clearDrawing, drawingStrokes,
-    openAccountSettings,
+    openAccountSettings, openShareModal, currentDiagramId,
   } = useStore();
 
   const P = useTheme();
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(currentDiagramName);
@@ -86,8 +88,25 @@ export default function Toolbar() {
       display: 'flex', alignItems: 'center', gap: 6,
       padding: '0 14px', height: 48, flexShrink: 0,
       background: P.bg, borderBottom: `1px solid ${P.divider}`,
-      fontFamily: "'Inter', system-ui, sans-serif",
+      fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
     }}>
+
+      {/* Back to projects */}
+      <button
+        onClick={() => {
+          if (!isDirty || confirm('Leave without saving? Unsaved changes will be lost.')) navigate('/projects');
+        }}
+        title="Back to projects"
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 28, height: 28, borderRadius: 4, border: 'none', background: 'none',
+          color: P.muted, cursor: 'pointer', flexShrink: 0,
+        }}
+      >
+        <ArrowLeft size={15}/>
+      </button>
+
+      <Sep/>
 
       {/* Diagram name */}
       <div style={{ display: 'flex', alignItems: 'center', marginRight: 2 }}>
@@ -129,6 +148,16 @@ export default function Toolbar() {
 
       {/* AI Generate — primary CTA */}
       <AIGenBtn onClick={openGenerateModal}/>
+
+      <Sep/>
+
+      <TBtn
+        onClick={openShareModal}
+        title={currentDiagramId ? 'Share with other users' : 'Save this diagram first to share it'}
+        Icon={Users}
+        label="Share"
+        disabled={!currentDiagramId}
+      />
 
       <Sep/>
 
@@ -185,7 +214,7 @@ export default function Toolbar() {
                   onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setPenColor(e.target.value); }}
                   style={{
                     width: 72, fontSize: 11, fontFamily: 'monospace',
-                    background: '#F7F4EF', border: `1px solid ${P.divider}`, borderRadius: 3,
+                    background: P.input, border: `1px solid ${P.divider}`, borderRadius: 3,
                     padding: '2px 6px', color: P.text, outline: 'none', letterSpacing: '0.04em',
                   }}
                 />
@@ -287,21 +316,23 @@ function Sep() {
   return <div style={{ width: 1, height: 20, background: P.divider, flexShrink: 0 }}/>;
 }
 
-function TBtn({ onClick, title, Icon, label, danger }) {
+function TBtn({ onClick, title, Icon, label, danger, disabled }) {
   const P = useTheme();
   const [hover, setHover] = useState(false);
   return (
     <button
       onClick={onClick}
       title={title}
+      disabled={disabled}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         display: 'flex', alignItems: 'center', gap: 5,
         padding: '5px 8px', borderRadius: 3, border: 'none',
-        fontSize: 12, fontWeight: 500, cursor: 'pointer',
-        color: hover ? (danger ? P.danger : P.text) : (danger ? P.faint : P.muted),
-        background: hover ? (danger ? P.danger + '18' : P.hover) : 'transparent',
+        fontSize: 12, fontWeight: 500, cursor: disabled ? 'default' : 'pointer',
+        color: hover && !disabled ? (danger ? P.danger : P.text) : (danger ? P.faint : P.muted),
+        background: hover && !disabled ? (danger ? P.danger + '18' : P.hover) : 'transparent',
+        opacity: disabled ? 0.4 : 1,
         transition: 'all 0.12s',
       }}
     >
@@ -312,7 +343,6 @@ function TBtn({ onClick, title, Icon, label, danger }) {
 }
 
 function AIGenBtn({ onClick }) {
-  const P = useTheme();
   const [hover, setHover] = useState(false);
   return (
     <button
@@ -320,13 +350,15 @@ function AIGenBtn({ onClick }) {
       title="Generate pipeline from a description"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      className="bg-washi"
       style={{
         display: 'flex', alignItems: 'center', gap: 6,
-        padding: '5px 12px', borderRadius: 3, border: 'none',
+        padding: '5px 12px', borderRadius: 3,
+        border: `1px solid ${hover ? '#B87040' : '#D2C6AF'}`,
         fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        background: hover ? P.hover : P.text,
-        color: P.bg,
-        transition: 'background 0.15s',
+        background: '#F7F2E7',
+        color: '#2B2926',
+        transition: 'border-color 0.15s',
       }}
     >
       <Wand2 size={12}/>
@@ -418,9 +450,9 @@ function CostEstimatorBtn({ active, onClick }) {
         display: 'flex', alignItems: 'center', gap: 5,
         padding: '5px 10px', borderRadius: 3, fontSize: 12, fontWeight: 500,
         cursor: 'pointer', transition: 'all 0.12s',
-        color: active ? '#2D7A4F' : hover ? P.text : P.muted,
-        background: active ? '#D4EDE0' : hover ? P.hover : 'transparent',
-        border: `1px solid ${active ? '#A5C9B6' : 'transparent'}`,
+        color: active ? '#435C36' : hover ? P.text : P.muted,
+        background: active ? '#E3E8DA' : hover ? P.hover : 'transparent',
+        border: `1px solid ${active ? '#A9BB98' : 'transparent'}`,
       }}
     >
       <DollarSign size={13}/>

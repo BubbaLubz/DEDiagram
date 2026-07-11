@@ -161,12 +161,15 @@ export default function DocPanel() {
   return (
     <div
       style={{
-        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        width: 'min(980px, 94vw)', zIndex: 40,
+        // Anchored between the 280px left sidebar (+ ReactFlow's bottom-left
+        // zoom controls) and the bottom-right MiniMap, rather than centered on
+        // the full viewport — otherwise this overlaps one side or the other.
+        position: 'fixed', bottom: 0, left: 320,
+        width: 'min(980px, calc(100vw - 320px - 220px))', zIndex: 40,
         background: P.surface, border: `1px solid ${P.divider}`, borderBottom: 'none',
         borderTopLeftRadius: 10, borderTopRightRadius: 10,
-        boxShadow: '0 -8px 24px rgba(0,0,0,0.18)', overflow: 'hidden',
-        fontFamily: "'Inter', system-ui, sans-serif",
+        boxShadow: '0 -8px 24px rgba(23,19,16,0.2)', overflow: 'hidden',
+        fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
       }}
     >
       {isDocPanelOpen && (
@@ -226,7 +229,7 @@ export default function DocPanel() {
             position: 'fixed', top: toolbar.top, left: toolbar.left, transform: 'translate(-50%, -100%)',
             zIndex: 100, display: 'flex', alignItems: 'center', gap: 2,
             background: P.card, border: `1px solid ${P.divider}`, borderRadius: 8,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.25)', padding: 3,
+            boxShadow: '0 8px 24px rgba(23,19,16,0.3)', padding: 3,
           }}
         >
           <ToolbarBtn title="Bold" onClick={() => applyMarker('bold')}><Bold size={13} /></ToolbarBtn>
@@ -253,7 +256,7 @@ export default function DocPanel() {
                   position: 'absolute', bottom: '100%', left: 0, marginBottom: 2,
                   minWidth: 200, maxHeight: 240, overflowY: 'auto',
                   background: P.card, border: `1px solid ${P.divider}`, borderRadius: 8,
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.25)', padding: 4,
+                  boxShadow: '0 8px 24px rgba(23,19,16,0.3)', padding: 4,
                 }}
               >
                 <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: P.faint, padding: '4px 8px' }}>

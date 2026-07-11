@@ -10,21 +10,31 @@ const session = require('express-session');
 const passport = require('passport');
 const GitHubStrategy = require('passport-github2').Strategy;
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const { Liveblocks } = require('@liveblocks/node');
+const db = require('./db.supabase');
 
 // Single source of truth for valid component types.
 // To add a component: update shared/component-types.json AND client/src/data/componentLibrary.js.
 const { byCategory } = require('../shared/component-types.json');
 const VALID_COMPONENT_TYPES = new Set(Object.values(byCategory).flat());
+const MAX_PROMPT_LENGTH = 4000; // defense-in-depth cap — bounds token usage regardless of client-side limits
 const COMPONENT_TYPE_LIST = Object.entries(byCategory)
   .map(([cat, types]) => `${cat.padEnd(16)}${types.join(', ')}`)
   .join('\n');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001; // Render (and most PaaS hosts) assign the port via this env var
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const DATA_DIR = path.join(__dirname, 'data');
-const DIAGRAMS_FILE = path.join(DATA_DIR, 'diagrams.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
+
+// Deployed behind a reverse proxy (Render/Railway/Fly/etc. all add one).
+// Without this, req.ip resolves to the proxy's own IP for every request,
+// collapsing the per-IP rate limiter below into one shared bucket for the
+// whole site instead of one bucket per visitor. Override TRUST_PROXY if a
+// CDN (e.g. Cloudflare) sits in front of the platform's own proxy, adding a
+// second hop.
+app.set('trust proxy', process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) : 1);
 
 app.use(cors({ origin: CLIENT_URL, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
@@ -64,7 +74,7 @@ if (process.env.GITHUB_CLIENT_ID) {
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
     callbackURL: `${process.env.SERVER_URL || 'http://localhost:3001'}/auth/github/callback`,
-  }, (_accessToken, _refreshToken, profile, done) => {
+  }, async (_accessToken, _refreshToken, profile, done) => {
     const users = readUsers();
     let user = users.find(u => u.githubId === profile.id);
     if (!user) {
@@ -79,6 +89,13 @@ if (process.env.GITHUB_CLIENT_ID) {
       users.push(user);
       writeUsers(users);
     }
+    try {
+      await db.upsertUser({
+        id: user.id, email: profile.emails?.[0]?.value, displayName: user.name, avatarUrl: user.avatar,
+      });
+    } catch (err) {
+      console.error('Failed to mirror GitHub user into Supabase:', err.message);
+    }
     return done(null, user);
   }));
 } else {
@@ -90,7 +107,7 @@ if (process.env.GOOGLE_CLIENT_ID) {
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: `${process.env.SERVER_URL || 'http://localhost:3001'}/auth/google/callback`,
-  }, (_accessToken, _refreshToken, profile, done) => {
+  }, async (_accessToken, _refreshToken, profile, done) => {
     const users = readUsers();
     let user = users.find(u => u.googleId === profile.id);
     if (!user) {
@@ -105,6 +122,13 @@ if (process.env.GOOGLE_CLIENT_ID) {
       users.push(user);
       writeUsers(users);
     }
+    try {
+      await db.upsertUser({
+        id: user.id, email: profile.emails?.[0]?.value, displayName: user.name, avatarUrl: user.avatar,
+      });
+    } catch (err) {
+      console.error('Failed to mirror Google user into Supabase:', err.message);
+    }
     return done(null, user);
   }));
 } else {
@@ -112,6 +136,11 @@ if (process.env.GOOGLE_CLIENT_ID) {
 }
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const liveblocks = new Liveblocks({ secret: process.env.LIVEBLOCKS_SECRET_KEY });
+
+if (!process.env.LIVEBLOCKS_SECRET_KEY) {
+  console.warn('⚠️  LIVEBLOCKS_SECRET_KEY is not set — live collaboration will fail');
+}
 
 const aiRateLimit = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
@@ -121,12 +150,34 @@ const aiRateLimit = rateLimit({
   message: { error: 'Daily generation limit reached. Try again tomorrow.' },
 });
 
+// Global circuit breaker across ALL users combined — a backstop against
+// runaway spend independent of the per-IP limiter above (which only caps one
+// visitor at a time, not total site-wide cost). Resets on a rolling 24h
+// window from the last reset, not calendar midnight; precision doesn't
+// matter here, only having some ceiling does. In-memory by design: a server
+// restart resetting the count early is an acceptable, harmless edge case.
+const DAILY_AI_CALL_LIMIT = Number(process.env.DAILY_AI_CALL_LIMIT) || 200;
+let dailyAiCallCount = 0;
+let dailyAiResetAt = Date.now() + 24 * 60 * 60 * 1000;
+
+const aiDailyCap = (req, res, next) => {
+  const now = Date.now();
+  if (now >= dailyAiResetAt) {
+    dailyAiCallCount = 0;
+    dailyAiResetAt = now + 24 * 60 * 60 * 1000;
+  }
+  if (dailyAiCallCount >= DAILY_AI_CALL_LIMIT) {
+    return res.status(429).json({ error: 'AI generation has reached today\'s site-wide usage cap. Please try again tomorrow.' });
+  }
+  dailyAiCallCount++;
+  next();
+};
+
 if (!process.env.ANTHROPIC_API_KEY) {
   console.warn('⚠️  ANTHROPIC_API_KEY is not set — AI generation will fail');
 }
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(DIAGRAMS_FILE)) fs.writeFileSync(DIAGRAMS_FILE, JSON.stringify([]));
 
 // Pulls the first complete {...} block out of a string, ignoring any
 // preamble text, markdown fences, or trailing commentary from the model.
@@ -137,59 +188,171 @@ function extractJSON(text) {
   return text.slice(start, end + 1);
 }
 
-const readDiagrams = () => {
-  try { return JSON.parse(fs.readFileSync(DIAGRAMS_FILE, 'utf8')); }
-  catch { return []; }
+const ensureAuthenticated = (req, res, next) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Sign in required' });
+  next();
 };
-const writeDiagrams = (d) => fs.writeFileSync(DIAGRAMS_FILE, JSON.stringify(d, null, 2));
 
 // ─── Diagrams CRUD ─────────────────────────────────────────────────────────
 
-app.get('/api/diagrams', (req, res) => {
-  const diagrams = readDiagrams();
-  res.json(diagrams.map(({ id, name, description, isTemplate, updatedAt, createdAt }) => ({
-    id, name, description, isTemplate, updatedAt, createdAt,
-  })));
+app.get('/api/diagrams', ensureAuthenticated, async (req, res) => {
+  try {
+    const diagrams = await db.listDiagrams(req.user.id);
+    res.json(diagrams);
+  } catch (err) {
+    console.error('List diagrams error:', err.message);
+    res.status(500).json({ error: 'Failed to list diagrams' });
+  }
 });
 
-app.get('/api/diagrams/:id', (req, res) => {
-  const d = readDiagrams().find(d => d.id === req.params.id);
-  if (!d) return res.status(404).json({ error: 'Not found' });
-  res.json(d);
+app.get('/api/diagrams/:id', ensureAuthenticated, async (req, res) => {
+  try {
+    const d = await db.getDiagram(req.params.id, req.user.id);
+    if (!d) return res.status(404).json({ error: 'Not found' });
+    res.json(d);
+  } catch (err) {
+    console.error('Get diagram error:', err.message);
+    res.status(500).json({ error: 'Failed to load diagram' });
+  }
 });
 
-app.post('/api/diagrams', (req, res) => {
+app.post('/api/diagrams', ensureAuthenticated, async (req, res) => {
   const { name, description, nodes, edges, docCells, isTemplate } = req.body;
   if (!name || !nodes) return res.status(400).json({ error: 'name and nodes required' });
-  const diagrams = readDiagrams();
-  const d = { id: uuidv4(), name, description: description || '', nodes, edges: edges || [],
-    docCells: docCells || [], isTemplate: isTemplate || false,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-  diagrams.push(d);
-  writeDiagrams(diagrams);
-  res.status(201).json(d);
+  try {
+    const d = await db.createDiagram({ name, description, nodes, edges, docCells, isTemplate, ownerId: req.user.id });
+    res.status(201).json(d);
+  } catch (err) {
+    console.error('Create diagram error:', err.message);
+    res.status(500).json({ error: 'Failed to create diagram' });
+  }
 });
 
-app.put('/api/diagrams/:id', (req, res) => {
-  const diagrams = readDiagrams();
-  const idx = diagrams.findIndex(d => d.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
-  diagrams[idx] = { ...diagrams[idx], ...req.body, id: req.params.id, updatedAt: new Date().toISOString() };
-  writeDiagrams(diagrams);
-  res.json(diagrams[idx]);
+app.put('/api/diagrams/:id', ensureAuthenticated, async (req, res) => {
+  try {
+    const d = await db.updateDiagram(req.params.id, req.body, req.user.id);
+    if (!d) return res.status(404).json({ error: 'Not found, or you do not have edit access' });
+    res.json(d);
+  } catch (err) {
+    console.error('Update diagram error:', err.message);
+    res.status(500).json({ error: 'Failed to update diagram' });
+  }
 });
 
-app.delete('/api/diagrams/:id', (req, res) => {
-  const diagrams = readDiagrams();
-  const filtered = diagrams.filter(d => d.id !== req.params.id);
-  if (filtered.length === diagrams.length) return res.status(404).json({ error: 'Not found' });
-  writeDiagrams(filtered);
-  res.json({ success: true });
+app.delete('/api/diagrams/:id', ensureAuthenticated, async (req, res) => {
+  try {
+    const ok = await db.deleteDiagram(req.params.id, req.user.id);
+    if (!ok) return res.status(404).json({ error: 'Not found, or you are not the owner' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete diagram error:', err.message);
+    res.status(500).json({ error: 'Failed to delete diagram' });
+  }
+});
+
+// ─── Sharing / Members ──────────────────────────────────────────────────────
+
+app.get('/api/users/search', ensureAuthenticated, async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (q.length < 2) return res.json([]);
+  try {
+    const users = await db.searchUsers(q, req.user.id);
+    res.json(users);
+  } catch (err) {
+    console.error('User search error:', err.message);
+    res.status(500).json({ error: 'Search failed' });
+  }
+});
+
+app.get('/api/diagrams/:id/members', ensureAuthenticated, async (req, res) => {
+  try {
+    const perm = await db.getUserPermission(req.params.id, req.user.id);
+    if (!perm) return res.status(404).json({ error: 'Not found' });
+    const members = await db.getDiagramMembers(req.params.id);
+    res.json(members);
+  } catch (err) {
+    console.error('List members error:', err.message);
+    res.status(500).json({ error: 'Failed to list members' });
+  }
+});
+
+app.post('/api/diagrams/:id/members', ensureAuthenticated, async (req, res) => {
+  const { userId, role } = req.body;
+  if (!userId || !['editor', 'viewer'].includes(role)) {
+    return res.status(400).json({ error: 'userId and a role of editor or viewer are required' });
+  }
+  try {
+    const perm = await db.getUserPermission(req.params.id, req.user.id);
+    if (!perm || perm.role !== 'owner') return res.status(403).json({ error: 'Only the owner can add members' });
+    const member = await db.setPermission({ diagramId: req.params.id, userId, role, invitedBy: req.user.id });
+    res.status(201).json(member);
+  } catch (err) {
+    console.error('Add member error:', err.message);
+    res.status(500).json({ error: 'Failed to add member' });
+  }
+});
+
+app.delete('/api/diagrams/:id/members/:userId', ensureAuthenticated, async (req, res) => {
+  try {
+    const perm = await db.getUserPermission(req.params.id, req.user.id);
+    if (!perm || perm.role !== 'owner') return res.status(403).json({ error: 'Only the owner can remove members' });
+    const ok = await db.removePermission(req.params.id, req.params.userId);
+    if (!ok) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Remove member error:', err.message);
+    res.status(500).json({ error: 'Failed to remove member' });
+  }
+});
+
+// ─── Liveblocks (live co-editing) ───────────────────────────────────────────
+
+app.post('/api/liveblocks-auth', ensureAuthenticated, async (req, res) => {
+  const { room } = req.body;
+  if (!room) return res.status(400).json({ error: 'room is required' });
+  try {
+    const perm = await db.getUserPermission(room, req.user.id);
+    if (!perm) return res.status(403).json({ error: 'You do not have access to this diagram' });
+
+    const session = liveblocks.prepareSession(req.user.id, {
+      userInfo: { name: req.user.name, avatar: req.user.avatar },
+    });
+    if (perm.role === 'viewer') {
+      session.allow(room, ['room:read', 'room:presence:write']);
+    } else {
+      session.allow(room, ['room:write']);
+    }
+    const { body, status } = await session.authorize();
+    res.status(status).send(body);
+  } catch (err) {
+    console.error('Liveblocks auth error:', err.message);
+    res.status(500).json({ error: 'Failed to authorize collaboration session' });
+  }
 });
 
 // ─── AI Generate ────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are an expert data engineering pipeline architect. Given a description of a data application, generate a precise pipeline diagram JSON.
+
+STEP 0 — CHECK FOR THE SKIP_CLARIFICATION OVERRIDE, BEFORE ANYTHING ELSE:
+If the user's message begins with the literal token "SKIP_CLARIFICATION", this overrides every other instruction below about asking questions. In that case you are FORBIDDEN from returning a needsClarification response, no matter how vague, short, or buzzword-laden the rest of the message is. You MUST instead go straight to building the full pipeline JSON, inventing a plausible subject and purpose yourself if the message truly gives you nothing (e.g. treat a bare "pipeline" as a generic batch ETL pipeline for business records into a warehouse). Note any such invented assumptions briefly in the "description" field. Do not skip this step or apply the buildability check below when this token is present.
+
+If that token is NOT present, apply this buildability check before doing anything else:
+A prompt is buildable only if you can point to a real, identifiable subject (an actual data source, event type, or business object — e.g. "order events", "sensor readings", "app logs") AND a stated purpose for it (what happens to the data / why it's being built — e.g. dashboards, ML training, replication, alerting).
+
+A prompt is NOT buildable if it lacks either of those, even if it contains technical-sounding words. A list of buzzwords/technology terms with no stated subject ("ML real-time sync monitor analytics") is NOT buildable — it never says what is being monitored or synced. A single vague word ("pipeline", "something for data") is NOT buildable. Do not guess a subject or purpose out of thin air just because a prompt sounds technical.
+
+If NOT buildable, respond with ONLY this JSON shape (nothing else):
+{
+  "needsClarification": true,
+  "questions": [
+    { "question": "Plain-language question about the missing piece (subject/domain and/or purpose). Never ask about specific tools or technologies.",
+      "options": ["Plain-language option", "Another option", "...", "Not sure"] }
+  ]
+}
+Ask 1-3 questions, only for what's actually missing (don't ask about purpose if it was already stated). Every question's options must be understandable to someone with zero data-engineering background — describe outcomes and data types in plain terms, never name specific tools (no "Kafka", "dbt", etc.). Always include "Not sure" as the last option.
+
+If buildable (or if the SKIP_CLARIFICATION token was present per STEP 0), proceed to build the full pipeline diagram as described below.
 
 AVAILABLE COMPONENT TYPES (use exact string values only):
 ${COMPONENT_TYPE_LIST}
@@ -244,9 +407,12 @@ JSON FORMAT:
   ]
 }`;
 
-app.post('/api/generate', aiRateLimit, async (req, res) => {
-  const { prompt } = req.body;
+app.post('/api/generate', aiRateLimit, aiDailyCap, async (req, res) => {
+  const { prompt, skipClarification } = req.body;
   if (!prompt?.trim()) return res.status(400).json({ error: 'prompt is required' });
+  if (prompt.length > MAX_PROMPT_LENGTH) return res.status(400).json({ error: `prompt too long (max ${MAX_PROMPT_LENGTH} characters)` });
+
+  const userMessage = skipClarification ? `SKIP_CLARIFICATION\n${prompt}` : prompt;
 
   // SSE setup — flush headers immediately so the client sees the stream start
   res.setHeader('Content-Type', 'text/event-stream');
@@ -267,7 +433,7 @@ app.post('/api/generate', aiRateLimit, async (req, res) => {
       model: 'claude-sonnet-4-6',
       max_tokens: 8192,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: userMessage }],
     });
 
     stream.on('text', (text) => {
@@ -284,6 +450,17 @@ app.post('/api/generate', aiRateLimit, async (req, res) => {
     } catch {
       console.error('Generate — bad model output:', fullText.slice(0, 500));
       send('error', { message: 'Model returned invalid JSON. Try rephrasing your prompt.' });
+      return res.end();
+    }
+
+    if (pipeline.needsClarification) {
+      const questions = Array.isArray(pipeline.questions) ? pipeline.questions.filter(q => q?.question && Array.isArray(q.options) && q.options.length) : [];
+      if (questions.length === 0) {
+        console.error('Generate — needsClarification with no valid questions:', fullText.slice(0, 500));
+        send('error', { message: 'Model returned invalid JSON. Try rephrasing your prompt.' });
+        return res.end();
+      }
+      send('clarify', { questions });
       return res.end();
     }
 
@@ -320,6 +497,24 @@ app.post('/api/generate', aiRateLimit, async (req, res) => {
 // ─── AI Edit ────────────────────────────────────────────────────────────────
 
 const EDIT_SYSTEM_PROMPT = `You are an expert data engineering pipeline architect modifying an EXISTING diagram.
+
+STEP 0 — CHECK FOR THE SKIP_CLARIFICATION OVERRIDE, BEFORE ANYTHING ELSE:
+If the user's message begins with the literal token "SKIP_CLARIFICATION", this overrides every other instruction below about asking questions. You are FORBIDDEN from returning a needsClarification response in that case, no matter how vague the modification request is. Instead pick the most plausible concrete edit yourself (e.g. treat "make it better" as "add an orchestration/monitoring layer and tighten up notes"), apply it, and briefly note what you assumed in the "description" field.
+
+If that token is NOT present, apply this actionability check before doing anything else:
+A modification request is actionable only if you can tell (a) which part of the CURRENT DIAGRAM it targets (a specific component, stage, or the connections between two named components — not just "it"/"the pipeline" with nothing else) AND (b) what concrete change is wanted (add/remove/replace a specific kind of component, or a specific dimension to improve — speed, cost, reliability, data quality, observability). Vague requests like "make it better", "improve this", "optimize it", "clean it up" with no further detail are NOT actionable.
+
+If NOT actionable, respond with ONLY this JSON shape (nothing else):
+{
+  "needsClarification": true,
+  "questions": [
+    { "question": "Plain-language question. Reference the ACTUAL components in the CURRENT DIAGRAM above by their labels (e.g. \\"Do you want to change how data gets into the Orders Database, or what happens after it leaves it?\\") so the user is picking real parts of their own diagram, not abstract categories.",
+      "options": ["Plain-language option grounded in a real component/stage from the diagram", "Another such option", "...", "Not sure"] }
+  ]
+}
+Ask 1-2 questions, only for what's actually missing. Options must be understandable with zero data-engineering background — describe outcomes in plain terms, never name specific tools/technologies not already present in the diagram. Always include "Not sure" as the last option.
+
+If actionable (or if the SKIP_CLARIFICATION token was present per STEP 0), proceed to modify the diagram as described below.
 
 AVAILABLE COMPONENT TYPES (use exact string values only):
 ${COMPONENT_TYPE_LIST}
@@ -365,9 +560,10 @@ JSON FORMAT:
   ]
 }`;
 
-app.post('/api/edit', aiRateLimit, async (req, res) => {
-  const { prompt, currentDiagram } = req.body;
+app.post('/api/edit', aiRateLimit, aiDailyCap, async (req, res) => {
+  const { prompt, currentDiagram, skipClarification } = req.body;
   if (!prompt?.trim()) return res.status(400).json({ error: 'prompt is required' });
+  if (prompt.length > MAX_PROMPT_LENGTH) return res.status(400).json({ error: `prompt too long (max ${MAX_PROMPT_LENGTH} characters)` });
   if (!currentDiagram?.nodes?.length) return res.status(400).json({ error: 'currentDiagram with nodes is required' });
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -390,7 +586,7 @@ app.post('/api/edit', aiRateLimit, async (req, res) => {
       id, source, target, type, data,
     }));
 
-    const userMessage = `CURRENT DIAGRAM (modify this):
+    const userMessage = `${skipClarification ? 'SKIP_CLARIFICATION\n' : ''}CURRENT DIAGRAM (modify this):
 ${JSON.stringify({ name: currentDiagram.name, nodes: slimNodes, edges: slimEdges }, null, 2)}
 
 MODIFICATION REQUEST:
@@ -419,6 +615,17 @@ ${prompt.trim()}`;
     } catch {
       console.error('Edit — bad model output:', fullText.slice(0, 500));
       send('error', { message: 'Model returned invalid JSON. Try rephrasing your edit instruction.' });
+      return res.end();
+    }
+
+    if (pipeline.needsClarification) {
+      const questions = Array.isArray(pipeline.questions) ? pipeline.questions.filter(q => q?.question && Array.isArray(q.options) && q.options.length) : [];
+      if (questions.length === 0) {
+        console.error('Edit — needsClarification with no valid questions:', fullText.slice(0, 500));
+        send('error', { message: 'Model returned invalid JSON. Try rephrasing your edit instruction.' });
+        return res.end();
+      }
+      send('clarify', { questions });
       return res.end();
     }
 
@@ -459,7 +666,7 @@ app.get('/auth/github',
 
 app.get('/auth/github/callback',
   passport.authenticate('github', { failureRedirect: `${CLIENT_URL}/?error=auth_failed` }),
-  (req, res) => res.redirect(`${CLIENT_URL}/app`)
+  (req, res) => res.redirect(`${CLIENT_URL}/projects`)
 );
 
 app.get('/auth/google',
@@ -468,7 +675,7 @@ app.get('/auth/google',
 
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: `${CLIENT_URL}/?error=auth_failed` }),
-  (req, res) => res.redirect(`${CLIENT_URL}/app`)
+  (req, res) => res.redirect(`${CLIENT_URL}/projects`)
 );
 
 app.get('/api/auth/me', (req, res) => {
@@ -480,6 +687,21 @@ app.get('/api/auth/me', (req, res) => {
 app.post('/auth/logout', (req, res) => {
   req.logout(() => res.json({ ok: true }));
 });
+
+// ─── Serve the built client in production ──────────────────────────────────
+// In dev, Vite's own dev server handles the client on a separate port; this
+// only matters for a single-service deploy (one Node process serves both the
+// API and the built SPA — see render.yaml).
+if (process.env.NODE_ENV === 'production') {
+  const clientDist = path.join(__dirname, '../client/dist');
+  app.use(express.static(clientDist));
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/auth')) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 

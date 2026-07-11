@@ -1,16 +1,29 @@
 services:
   - type: web
-    name: dediagram-api
+    name: dediagram
     runtime: node
-    rootDir: server
-    buildCommand: npm install
-    startCommand: node index.js
+    rootDir: DEDiagrams
+    buildCommand: npm run install:all && npm run build
+    startCommand: node server/index.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3001
-      - key: CLERK_SECRET_KEY
+      # Render assigns the real https://<name>.onrender.com URL only after
+      # the first deploy — set these two to that URL afterward and redeploy
+      # (also update the GitHub/Google OAuth app callback URLs to match).
+      - key: CLIENT_URL
+        sync: false
+      - key: SERVER_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: SUPABASE_URL
         sync: false
@@ -20,3 +33,5 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: DAILY_AI_CALL_LIMIT
+        value: 200

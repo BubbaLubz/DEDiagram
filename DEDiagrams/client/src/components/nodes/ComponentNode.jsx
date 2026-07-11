@@ -37,18 +37,16 @@ function ComponentNode({ id, data, selected }) {
 
   return (
     <div
-      className={`relative rounded-xl border-2 transition-all duration-200 cursor-pointer select-none ${isDocActive ? 'doc-cell-active-node' : ''}`}
+      className={`relative rounded-lg border-2 transition-all duration-200 cursor-pointer select-none ${isDocActive ? 'doc-cell-active-node' : ''}`}
       style={{
         width: 200,
-        borderColor: selected ? category.color : hovered ? category.color + 'aa' : '#30363d',
-        background: selected
-          ? `linear-gradient(135deg, #1c2333, ${component.bg || '#1c2333'})`
-          : `#1c2333`,
+        borderColor: selected ? category.color : hovered ? category.color + 'aa' : '#4A3B2C',
+        background: '#2A2119',
         boxShadow: isDocActive ? undefined : selected
-          ? `0 0 0 2px ${category.color}44, 0 8px 24px rgba(0,0,0,0.4)`
+          ? `0 0 0 2px ${category.color}44, 0 8px 24px rgba(23,19,16,0.55)`
           : hovered
-          ? `0 4px 16px rgba(0,0,0,0.3)`
-          : `0 2px 8px rgba(0,0,0,0.2)`,
+          ? `0 4px 16px rgba(23,19,16,0.45)`
+          : `0 2px 8px rgba(23,19,16,0.35)`,
         ...(isDocActive ? { '--doc-pulse-color': `${category.color}90` } : {}),
       }}
       onMouseEnter={() => setHovered(true)}
@@ -57,7 +55,7 @@ function ComponentNode({ id, data, selected }) {
       <Handle
         type="target"
         position={Position.Left}
-        style={{ background: '#30363d', border: `2px solid ${category.color}`, width: 10, height: 10, left: -6 }}
+        style={{ background: '#4A3B2C', border: `2px solid ${category.color}`, width: 10, height: 10, left: -6 }}
       />
 
       <div className="p-3">
@@ -66,7 +64,7 @@ function ComponentNode({ id, data, selected }) {
             {isCustomBox ? (
               data.iconEmoji ? (
                 <div className="w-full h-full flex items-center justify-center text-xl"
-                  style={{ background: '#1c2333' }}>
+                  style={{ background: '#2A2119' }}>
                   {data.iconEmoji}
                 </div>
               ) : (
@@ -88,7 +86,7 @@ function ComponentNode({ id, data, selected }) {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-slate-100 truncate">{data.label || component.label}</div>
+            <div className="text-sm font-semibold truncate" style={{ color: '#E8DFD0' }}>{data.label || component.label}</div>
             {!isCustomBox && (
               <div className="text-xs font-medium mt-0.5" style={{ color: category.color }}>
                 {category.label}
@@ -98,7 +96,7 @@ function ComponentNode({ id, data, selected }) {
         </div>
 
         {data.notes && (
-          <div className="mt-2 text-xs text-slate-400 leading-relaxed line-clamp-2 border-t border-slate-700 pt-2">
+          <div className="mt-2 text-xs leading-relaxed line-clamp-2 pt-2" style={{ color: '#9C8F7C', borderTop: '1px solid #4A3B2C' }}>
             {data.notes}
           </div>
         )}
@@ -107,7 +105,7 @@ function ComponentNode({ id, data, selected }) {
       <Handle
         type="source"
         position={Position.Right}
-        style={{ background: '#30363d', border: `2px solid ${category.color}`, width: 10, height: 10, right: -6 }}
+        style={{ background: '#4A3B2C', border: `2px solid ${category.color}`, width: 10, height: 10, right: -6 }}
       />
     </div>
   );

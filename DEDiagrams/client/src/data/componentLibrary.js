@@ -21,18 +21,21 @@ import logoLooker from '../assets/logos/looker.svg';
 import logoSuperset from '../assets/logos/superset.svg';
 import logoAnthropic from '../assets/logos/anthropic.svg';
 
+// Earth-tone category palette (DESIGN.md) — replaces the previous saturated
+// web-default hues so pipeline-stage colors sit naturally against the warm
+// wood workspace instead of reading as neon.
 export const CATEGORIES = [
-  { id: 'source', label: 'Sources', color: '#3b82f6', lightColor: '#93c5fd' },
-  { id: 'ingestion', label: 'Ingestion', color: '#f97316', lightColor: '#fdba74' },
-  { id: 'streaming', label: 'Streaming', color: '#f59e0b', lightColor: '#fcd34d' },
-  { id: 'processing', label: 'Processing', color: '#a855f7', lightColor: '#d8b4fe' },
-  { id: 'orchestration', label: 'Orchestration', color: '#06b6d4', lightColor: '#67e8f9' },
-  { id: 'storage', label: 'Storage', color: '#22c55e', lightColor: '#86efac' },
-  { id: 'warehouse', label: 'Warehouse', color: '#29b5e8', lightColor: '#7dd3fc' },
-  { id: 'serving', label: 'Serving / BI', color: '#ec4899', lightColor: '#f9a8d4' },
-  { id: 'infra', label: 'Infrastructure', color: '#0db7ed', lightColor: '#7dd3fc' },
-  { id: 'ai_llm', label: 'AI / LLM', color: '#8b5cf6', lightColor: '#c4b5fd' },
-  { id: 'custom', label: 'Custom', color: '#64748b', lightColor: '#94a3b8' },
+  { id: 'source', label: 'Sources', color: '#4E6E81', lightColor: '#A8C0CC' },
+  { id: 'ingestion', label: 'Ingestion', color: '#BC5A34', lightColor: '#E3B091' },
+  { id: 'streaming', label: 'Streaming', color: '#C99A3E', lightColor: '#E8CE94' },
+  { id: 'processing', label: 'Processing', color: '#7D5A88', lightColor: '#C6AFCE' },
+  { id: 'orchestration', label: 'Orchestration', color: '#5C7A78', lightColor: '#A9C0BE' },
+  { id: 'storage', label: 'Storage', color: '#5C7A4A', lightColor: '#A9C08F' },
+  { id: 'warehouse', label: 'Warehouse', color: '#6B8CA3', lightColor: '#B7CDDA' },
+  { id: 'serving', label: 'Serving / BI', color: '#9C5B6E', lightColor: '#D9A9B6' },
+  { id: 'infra', label: 'Infrastructure', color: '#8C6A3F', lightColor: '#D2B385' },
+  { id: 'ai_llm', label: 'AI / LLM', color: '#5B4E7A', lightColor: '#B0A6C9' },
+  { id: 'custom', label: 'Custom', color: '#8A8275', lightColor: '#C7C0B2' },
 ];
 
 export const COMPONENTS = {
@@ -417,7 +420,7 @@ export const COMPONENTS = {
   },
   custom_box: {
     type: 'custom_box', label: 'Custom Box', category: 'custom',
-    color: '#64748b', bg: '#1c2333',
+    color: '#8A8275', bg: '#2A2119',
     iconText: '□', iconEmoji: '🔲',
     tagline: 'Custom component',
     description: 'A blank box you can name and describe freely.',

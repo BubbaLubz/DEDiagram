@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-10T00:00:00.000Z",
+  "title": "Design System: DEDiagram",
+  "extensions": {
+    "colorMeta": {
+      "honey-oak": { "role": "primary", "displayName": "Honey Oak", "canonical": "#B87040", "tonalRamp": ["#3A2515", "#5A3820", "#7A4C2B", "#9B5F36", "#B87040", "#C98A5E", "#D9AA84", "#EAC9AC"] },
+      "honey-oak-dark-mode": { "role": "primary", "displayName": "Honey Oak (dark mode)", "canonical": "#E3A854", "tonalRamp": ["#4A3419", "#6B4B23", "#8C632E", "#B2833F", "#E3A854", "#E9BC79", "#F0D09E", "#F7E4C3"] },
+      "pine-pale": { "role": "primary", "displayName": "Pine Pale", "canonical": "#D9BE95", "tonalRamp": ["#4A3B23", "#6B5733", "#8C7343", "#B2985F", "#D9BE95", "#E3CDAC", "#EDDCC3", "#F6EBDC"] },
+      "cedar-deep": { "role": "primary", "displayName": "Cedar Deep", "canonical": "#7A5233", "tonalRamp": ["#241811", "#3A2618", "#503420", "#654228", "#7A5233", "#93694A", "#B08967", "#CDAF91"] },
+      "washi-paper": { "role": "secondary", "displayName": "Washi Paper", "canonical": "#F7F2E7", "tonalRamp": ["#4A4536", "#6B6450", "#8C826A", "#B2A588", "#D9CCAC", "#F7F2E7", "#FAF7EF", "#FDFBF7"] },
+      "sumi-charcoal": { "role": "neutral", "displayName": "Sumi Charcoal", "canonical": "#2B2926", "tonalRamp": ["#0A0908", "#161412", "#2B2926", "#454138", "#605A4C", "#7C7466", "#9A9184", "#B8AFA2"] },
+      "hallway-concrete": { "role": "neutral", "displayName": "Hallway Concrete", "canonical": "#A3A099", "tonalRamp": ["#28271F", "#43413A", "#5F5D54", "#7C7A70", "#A3A099", "#BAB7B0", "#D1CEC8", "#E8E6E1"] },
+      "corten-rust": { "role": "neutral", "displayName": "Corten Rust", "canonical": "#A3502B", "tonalRamp": ["#2E1608", "#48220D", "#622E12", "#7C3B17", "#A3502B", "#BC7350", "#D59A7D", "#EDC3B0"] },
+      "moss": { "role": "neutral", "displayName": "Moss", "canonical": "#5C7A4A", "tonalRamp": ["#1A2414", "#293620", "#38492C", "#485D38", "#5C7A4A", "#7FA366", "#A3C48D", "#C7E0B7"] },
+      "danger-light": { "role": "neutral", "displayName": "Danger (light mode)", "canonical": "#A23A2E", "tonalRamp": ["#331210", "#4D1C17", "#66261E", "#833025", "#A23A2E", "#BC5A4E", "#D38A7E", "#E5BAB0"] },
+      "danger-dark": { "role": "neutral", "displayName": "Danger (dark mode)", "canonical": "#E8735F", "tonalRamp": ["#4A1512", "#6B1F1A", "#8F2A22", "#B8392E", "#D9503F", "#E8735F", "#F09A8D", "#F7C0B5"] },
+      "workspace-canvas": { "role": "neutral", "displayName": "Workspace Canvas", "canonical": "#171310", "tonalRamp": ["#000000", "#171310", "#241E18", "#332B22", "#453A2E", "#5C4E3D", "#7A6B57", "#9C8F7C"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page-level titles. Light weight (300), tightened tracking — quiet, architectural, never a bold shout." },
+      "title": { "displayName": "Title", "purpose": "Component names, card titles, node labels." },
+      "body": { "displayName": "Body", "purpose": "Descriptions, pipeline notes, form inputs — generous 1.65 line-height for a calm, unhurried feel." },
+      "label": { "displayName": "Label", "purpose": "Edge-type chips, category labels, technical tags — always JetBrains Mono." }
+    },
+    "shadows": [
+      { "name": "ambient-panel", "value": "0 4px 20px rgba(36,31,25,0.16)", "purpose": "Floating chrome above the canvas." },
+      { "name": "node-rest", "value": "0 2px 8px rgba(23,19,16,0.35)", "purpose": "Default node card shadow." },
+      { "name": "node-hover", "value": "0 4px 16px rgba(23,19,16,0.45)", "purpose": "Node card on hover." },
+      { "name": "node-selected", "value": "0 0 0 2px {categoryColor}44, 0 8px 24px rgba(23,19,16,0.55)", "purpose": "Selected node ring plus deep lift." },
+      { "name": "edge-chip-glow", "value": "0 0 8px {edgeColor}22", "purpose": "Soft glow on edge-type chips, intensifying to 44 while editing." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "0.15s ease", "purpose": "Default hover/focus transition." },
+      { "name": "ease-canvas", "value": "0.2s ease", "purpose": "Node/edge state transitions on the canvas." }
+    ],
+    "textures": [
+      { "name": "plaster-grain", "value": "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E\")", "purpose": "Near-subliminal noise on large flat backgrounds (page bodies, empty canvas)." },
+      { "name": "board-seam-rhythm", "value": "repeating-linear-gradient(90deg, currentColor 0, currentColor 1px, transparent 1px, transparent 24px)", "purpose": "Low-contrast vertical board/slat rhythm behind large empty chrome areas, opacity ~0.04." },
+      { "name": "washi-weave", "value": "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.15 0.4' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)' opacity='0.05'/%3E%3C/svg%3E\")", "purpose": "Woven-paper texture reserved for AI-touchpoint surfaces only." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Honey Oak filled action button, sharp 3px corners.",
+      "html": "<button class=\"ds-btn-primary\">Save</button>",
+      "css": ".ds-btn-primary { background: #B87040; color: #fff; padding: 8px 18px; border-radius: 3px; border: none; font-family: IBM Plex Sans, system-ui, sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; } .ds-btn-primary:hover { background: #9B5F36; } .ds-btn-primary:focus-visible { outline: 2px solid #B87040; outline-offset: 2px; }"
+    },
+    {
+      "name": "AI Generate Button",
+      "kind": "button",
+      "refersTo": "button-ai",
+      "description": "Washi-paper textured button reserved for AI-touchpoint surfaces — replaces the banned indigo/violet gradient with material and warmth instead of a different hue family.",
+      "html": "<button class=\"ds-btn-ai\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#2B2926\" stroke-width=\"1.6\" stroke-linecap=\"round\"><path d=\"M12 3v5M12 16v5M3 12h5M16 12h5M6 6l3 3M18 6l-3 3M6 18l3-3M18 18l-3-3\"/></svg>Generate Pipeline</button>",
+      "css": ".ds-btn-ai { display: inline-flex; align-items: center; gap: 8px; background: #F7F2E7; background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.15 0.4' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)' opacity='0.05'/%3E%3C/svg%3E\"); color: #2B2926; padding: 10px 18px; border-radius: 3px; border: 1px solid #D2C6AF; font-family: IBM Plex Sans, system-ui, sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color 0.15s, transform 0.15s; } .ds-btn-ai:hover { border-color: #B87040; transform: translateY(-1px); } .ds-btn-ai:focus-visible { outline: 2px solid #B87040; outline-offset: 2px; }"
+    },
+    {
+      "name": "Component Node Card",
+      "kind": "custom",
+      "refersTo": "node-card",
+      "description": "The canvas's signature element — permanently dark, now warm-timber dark rather than cool slate, bordered in its data-stage category color.",
+      "html": "<div class=\"ds-node-card\"><div class=\"ds-node-header\"><div class=\"ds-node-icon\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"white\"><ellipse cx=\"12\" cy=\"6\" rx=\"8\" ry=\"3\"/><path d=\"M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6\"/><path d=\"M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6\"/></svg></div><div class=\"ds-node-titles\"><div class=\"ds-node-label\">Orders Database</div><div class=\"ds-node-category\">Sources</div></div></div><div class=\"ds-node-notes\">Production OLTP — source of truth for order lifecycle events</div></div>",
+      "css": ".ds-node-card { width: 200px; background: #2A2119; border: 2px solid #7A5233; border-radius: 10px; padding: 12px; box-shadow: 0 0 0 2px rgba(122,82,51,0.27), 0 8px 24px rgba(23,19,16,0.55); font-family: IBM Plex Sans, system-ui, sans-serif; } .ds-node-header { display: flex; align-items: center; gap: 12px; } .ds-node-icon { width: 36px; height: 36px; flex-shrink: 0; border-radius: 6px; background: #7A5233; display: flex; align-items: center; justify-content: center; } .ds-node-titles { min-width: 0; } .ds-node-label { font-size: 14px; font-weight: 600; color: #F1EBDF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-node-category { font-size: 12px; font-weight: 500; color: #D9BE95; margin-top: 2px; } .ds-node-notes { margin-top: 8px; padding-top: 8px; border-top: 1px solid #4A3B2C; font-size: 12px; line-height: 1.5; color: #9C8F7C; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }"
+    },
+    {
+      "name": "Edge Type Chip",
+      "kind": "chip",
+      "refersTo": "edge-chip",
+      "description": "Pill-shaped edge-type label on the canvas — earth-tone palette instead of saturated web defaults.",
+      "html": "<span class=\"ds-edge-chip\">streaming</span>",
+      "css": ".ds-edge-chip { display: inline-block; background: #171310; color: #6B7F9E; border: 1px solid rgba(107,127,158,0.4); border-radius: 999px; padding: 2px 6px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.05em; box-shadow: 0 0 8px rgba(107,127,158,0.13); white-space: nowrap; }"
+    },
+    {
+      "name": "Project Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Saved-diagram card on the Projects page — flat plaster card with a whisper of grain, border shifts to Honey Oak on hover.",
+      "html": "<div class=\"ds-project-card\"><div class=\"ds-project-thumb\"></div><div class=\"ds-project-body\"><div class=\"ds-project-name\">Orders Pipeline</div><div class=\"ds-project-meta\">4 components · updated 2 days ago</div></div></div>",
+      "css": ".ds-project-card { border-radius: 6px; border: 1px solid #D2C6AF; background: #E0D6C4; overflow: hidden; font-family: IBM Plex Sans, system-ui, sans-serif; cursor: pointer; transition: border-color 0.15s; } .ds-project-card:hover { border-color: rgba(184,112,64,0.53); } .ds-project-thumb { height: 120px; background: #E7DFD0; border-bottom: 1px solid #D2C6AF; } .ds-project-body { padding: 10px 12px; } .ds-project-name { font-size: 13px; font-weight: 600; color: #241F19; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-project-meta { margin-top: 4px; font-size: 11px; color: #7C7264; }"
+    },
+    {
+      "name": "Ghost Icon Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Transparent icon button used throughout the toolbar and sidebar.",
+      "html": "<button class=\"ds-btn-ghost\" aria-label=\"Save\"><svg viewBox=\"0 0 24 24\" width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z\"/><path d=\"M17 21v-8H7v8M7 3v5h8\"/></svg></button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: none; border: none; border-radius: 4px; color: #7C7264; cursor: pointer; transition: background 0.1s, color 0.1s; } .ds-btn-ghost:hover { background: #E0D6C4; color: #241F19; } .ds-btn-ghost:focus-visible { outline: 2px solid #B87040; outline-offset: 1px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Timber-Frame Workshop",
+    "overview": "DEDiagram is redesigned around two reference photographs of contemporary Japanese minimalist architecture: a living room opening onto a wood deck through a wide sliding frame, and a timber-lined hallway where diagonal light cuts across raw board-and-batten walls. Neither image is decorative flourish — they set the actual material logic of the interface. Warm honey-oak and cedar wood carry structure and primary action. Matte plaster carries the quiet background. A single near-black charcoal carries the sparing dark accent (a cushion, a pendant lamp, a stool — never more than one dark object in a room). A cool concrete gray grounds the warm palette exactly once, the way the hallway floor grounds the wood around it. Texture is never applied for its own sake: grain, board-seams, and woven paper are structural facts of the material, not filters laid on top.\n\nThis redesign explicitly tears out the previous system's AI-slop tells: the indigo→violet gradient CTA (the single most recognizable \"AI-generated design\" cliché), the cool GitHub-dark canvas palette, and any surface that read as a generic dashboard template. AI-touchpoint surfaces are now differentiated by material — a washi-paper grain texture, evoking the shoji screen in the reference photo — not by switching to an unrelated hue family. The whole interface should photograph like the reference images: warm, matte, grain-forward, quiet.",
+    "keyCharacteristics": [
+      "One wood family (pale pine → honey oak → deep cedar) carries nearly all warm surface and accent color; charcoal and concrete are used once each, deliberately, never as a competing palette.",
+      "Texture is material, not decoration: a fine grain noise on plaster surfaces, a repeated vertical board-seam rhythm behind large empty areas, never a gradient or a glow-for-glow's-sake.",
+      "The canvas workspace stays permanently dark, but re-themed warm — a shadowed timber interior at night, not a cool blue-black dev-tool dark mode.",
+      "AI-touchpoint surfaces are marked by the washi-paper texture and a quieter, ink-charcoal button — not a different color family."
+    ],
+    "rules": [
+      { "name": "The One Dark Object Rule", "body": "Sumi Charcoal appears at most once or twice per screen, the way a single dark cushion or pendant lamp anchors a warm room in the reference photos. It is never a general dark-neutral available everywhere.", "section": "colors" },
+      { "name": "The Two-Palette Rule", "body": "Chrome follows the light/dark theme toggle. The canvas workspace does not — it is always dark, now warm rather than cool.", "section": "colors" },
+      { "name": "The No-Gradient Rule", "body": "No color gradients anywhere, on text or fills. This was the previous system's biggest AI-slop tell and is now banned outright.", "section": "colors" },
+      { "name": "The Quiet Display Rule", "body": "Display-scale text is light-weight (300), never bold. Emphasis comes from color and material, not heavier type.", "section": "typography" },
+      { "name": "The Warm Shadow Rule", "body": "No shadow is pure black. Every box-shadow uses a warm charcoal-brown (rgba(23,19,16,...)), matching how shadow falls across wood in the reference photos.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do build the palette almost entirely from the wood family; reach for Sumi Charcoal, Hallway Concrete, or Corten Rust only once or twice per screen.",
+      "Do texture large flat surfaces with Plaster Grain or Board Seam Rhythm at very low opacity.",
+      "Do mark AI-touchpoint surfaces with the Washi Weave texture and a quiet charcoal-on-paper button.",
+      "Do keep every shadow warm-tinted, never pure black/gray.",
+      "Do keep the canvas workspace permanently dark, now warm rather than cool."
+    ],
+    "donts": [
+      "Don't use a gradient anywhere, on text or fills — the single most important rule in this system.",
+      "Don't let the canvas workspace read as cool blue-black GitHub-dark again.",
+      "Don't use a colored border-left/border-right stripe as an accent anywhere.",
+      "Don't build a generic enterprise-SaaS look.",
+      "Don't apply texture as a decorative pattern layered on top of a flat design — it should read as the material the surface is actually made of, at near-subliminal opacity."
+    ]
+  }
+}

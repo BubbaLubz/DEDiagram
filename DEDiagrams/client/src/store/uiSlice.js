@@ -24,6 +24,7 @@ export const createUiSlice = (set, get) => ({
   isGenerateModalOpen: false,
   isCostPanelOpen: false,
   isAccountSettingsOpen: false,
+  isShareModalOpen: false,
 
   // Theme
   darkMode: localStorage.getItem('de-dark-mode') === 'true',
@@ -46,6 +47,9 @@ export const createUiSlice = (set, get) => ({
   toggleCostPanel: () => set(s => ({ isCostPanelOpen: !s.isCostPanelOpen, isDetailOpen: false, selectedNode: null })),
   closeCostPanel: () => set({ isCostPanelOpen: false }),
   setActiveTab: (tab) => set({ activeTab: tab }),
+
+  openShareModal: () => set({ isShareModalOpen: true }),
+  closeShareModal: () => set({ isShareModalOpen: false }),
 
   openAccountSettings: () => set({ isAccountSettingsOpen: true }),
   closeAccountSettings: () => set({ isAccountSettingsOpen: false }),

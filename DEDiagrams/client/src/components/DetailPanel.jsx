@@ -160,7 +160,7 @@ function CustomBoxEditor({ nodeId, initialLabel, initialNotes, initialIcon }) {
     width: '100%', padding: '8px 12px', fontSize: 13, color: P.text,
     background: P.input, border: `1px solid ${P.divider}`, borderRadius: 4,
     outline: 'none', transition: 'border-color 0.15s',
-    fontFamily: "'Inter', system-ui, sans-serif",
+    fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
   };
 
   return (
@@ -182,7 +182,7 @@ function CustomBoxEditor({ nodeId, initialLabel, initialNotes, initialIcon }) {
         {pickerOpen && (
           <div style={{
             marginTop: 8, padding: 8, borderRadius: 4, border: `1px solid ${P.divider}`,
-            background: '#F7F4EF', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2,
+            background: '#F7F2E7', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2,
           }}>
             {EMOJI_OPTIONS.map(emoji => (
               <button
@@ -393,7 +393,7 @@ export default function DetailPanel() {
                 <p style={{ fontSize: 11, color: P.faint, marginBottom: 6 }}>Receives from:</p>
                 {inboundEdges.map(e => (
                   <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: P.text, marginBottom: 4 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3B82F6', flexShrink: 0 }}/>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#5B7A8C', flexShrink: 0 }}/>
                     <span style={{ fontWeight: 500 }}>{getNodeLabel(e.source)}</span>
                     <span style={{ color: P.faint }}>via</span>
                     <span style={{ padding: '1px 6px', borderRadius: 2, background: P.card, color: P.muted, border: `1px solid ${P.divider}` }}>
@@ -408,7 +408,7 @@ export default function DetailPanel() {
                 <p style={{ fontSize: 11, color: P.faint, marginBottom: 6 }}>Sends to:</p>
                 {outboundEdges.map(e => (
                   <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: P.text, marginBottom: 4 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', flexShrink: 0 }}/>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#5C7A4A', flexShrink: 0 }}/>
                     <span style={{ fontWeight: 500 }}>{getNodeLabel(e.target)}</span>
                     <span style={{ color: P.faint }}>via</span>
                     <span style={{ padding: '1px 6px', borderRadius: 2, background: P.card, color: P.muted, border: `1px solid ${P.divider}` }}>

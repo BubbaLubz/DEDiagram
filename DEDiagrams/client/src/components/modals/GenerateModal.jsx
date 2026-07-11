@@ -20,6 +20,9 @@ const EDIT_PROMPTS = [
   "Add an AI enrichment step using the Anthropic API before serving to the dashboard",
 ];
 
+// This modal is a permanently-dark focused surface (like the canvas
+// workspace), independent of the app's light/dark chrome toggle — matching
+// how it already behaved before this redesign. Re-themed warm per DESIGN.md.
 function StreamingPreview({ text }) {
   const scrollRef = useRef(null);
 
@@ -34,17 +37,17 @@ function StreamingPreview({ text }) {
       ref={scrollRef}
       className="mt-3 rounded-lg overflow-y-auto"
       style={{
-        background: '#0d1117',
-        border: '1px solid #30363d',
+        background: '#171310',
+        border: '1px solid #4A3B2C',
         maxHeight: 120,
         padding: '8px 12px',
       }}
     >
       <pre
         className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all"
-        style={{ color: '#7dd3fc', margin: 0 }}
+        style={{ color: '#D9BE95', margin: 0 }}
       >
-        {text}<span className="animate-pulse" style={{ color: '#6366f1' }}>▌</span>
+        {text}<span className="animate-pulse" style={{ color: '#E3A854' }}>▌</span>
       </pre>
     </div>
   );
@@ -58,6 +61,11 @@ export default function GenerateModal() {
   const [statusMsg, setStatusMsg] = useState('');
   const [streamingText, setStreamingText] = useState('');
   const [result, setResult] = useState(null);
+  const [clarifyQuestions, setClarifyQuestions] = useState(null);
+  const [clarifyAnswers, setClarifyAnswers] = useState({});
+  const [otherMode, setOtherMode] = useState({});
+  const [basePrompt, setBasePrompt] = useState('');
+  const OTHER_ANSWER_MAX_LEN = 150;
   const textareaRef = useRef(null);
   const abortRef = useRef(null);
 
@@ -71,10 +79,14 @@ export default function GenerateModal() {
     setStatus('idle');
     setStreamingText('');
     setResult(null);
+    setClarifyQuestions(null);
+    setClarifyAnswers({});
+    setOtherMode({});
   };
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+  const handleGenerate = async (overrides = {}) => {
+    const promptToSend = overrides.promptOverride ?? prompt;
+    if (!promptToSend.trim()) return;
     if (mode === 'edit' && !hasCanvas) return;
 
     abortRef.current?.abort();
@@ -85,11 +97,14 @@ export default function GenerateModal() {
     setStatusMsg('Connecting to Claude…');
     setStreamingText('');
     setResult(null);
+    setClarifyQuestions(null);
+    setClarifyAnswers({});
+    setOtherMode({});
 
     const url = mode === 'edit' ? '/api/edit' : '/api/generate';
     const body = mode === 'edit'
-      ? { prompt: prompt.trim(), currentDiagram: { nodes, edges } }
-      : { prompt: prompt.trim() };
+      ? { prompt: promptToSend.trim(), currentDiagram: { nodes, edges }, skipClarification: !!overrides.skipClarification }
+      : { prompt: promptToSend.trim(), skipClarification: !!overrides.skipClarification };
 
     try {
       const response = await fetch(url, {
@@ -133,6 +148,12 @@ export default function GenerateModal() {
             setStatusMsg(
               `${mode === 'edit' ? 'Updated to' : 'Generated'} ${event.pipeline.nodes?.length ?? 0} components · ${event.pipeline.edges?.length ?? 0} connections`
             );
+          } else if (event.type === 'clarify') {
+            setStreamingText('');
+            setBasePrompt(promptToSend.trim());
+            setClarifyQuestions(event.questions);
+            setStatus('clarify');
+            setStatusMsg('A few quick questions before we build this…');
           } else if (event.type === 'error') {
             throw new Error(event.message);
           }
@@ -160,6 +181,9 @@ export default function GenerateModal() {
     setResult(null);
     setPrompt('');
     setMode('generate');
+    setClarifyQuestions(null);
+    setClarifyAnswers({});
+    setOtherMode({});
   };
 
   const handleClose = () => {
@@ -169,28 +193,63 @@ export default function GenerateModal() {
     setStreamingText('');
     setResult(null);
     setMode('generate');
+    setClarifyQuestions(null);
+    setClarifyAnswers({});
+    setOtherMode({});
   };
+
+  const handleSelectAnswer = (questionIndex, option) => {
+    setClarifyAnswers(prev => ({ ...prev, [questionIndex]: option }));
+    setOtherMode(prev => ({ ...prev, [questionIndex]: false }));
+  };
+
+  const handleToggleOther = (questionIndex) => {
+    setOtherMode(prev => ({ ...prev, [questionIndex]: true }));
+    setClarifyAnswers(prev => ({ ...prev, [questionIndex]: '' }));
+  };
+
+  const handleCustomAnswerChange = (questionIndex, text) => {
+    setClarifyAnswers(prev => ({ ...prev, [questionIndex]: text.slice(0, OTHER_ANSWER_MAX_LEN) }));
+  };
+
+  const handleSubmitClarification = () => {
+    const answerLines = clarifyQuestions
+      .map((q, i) => (clarifyAnswers[i] && clarifyAnswers[i] !== 'Not sure') ? `${q.question} ${clarifyAnswers[i]}` : null)
+      .filter(Boolean);
+    const enrichedPrompt = answerLines.length
+      ? `${basePrompt}\n\nAdditional context:\n${answerLines.join('\n')}`
+      : basePrompt;
+    handleGenerate({ promptOverride: enrichedPrompt, skipClarification: true });
+  };
+
+  const allClarificationAnswered = clarifyQuestions?.every((_, i) => clarifyAnswers[i]?.trim()) ?? false;
 
   const examplePrompts = mode === 'edit' ? EDIT_PROMPTS : GENERATE_PROMPTS;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(23,19,16,0.75)' }}>
       <div
-        className="rounded-2xl border border-slate-700 shadow-2xl w-full flex flex-col"
-        style={{ background: '#161b22', maxWidth: 640, maxHeight: '90vh' }}
+        className="rounded-2xl shadow-2xl w-full flex flex-col"
+        style={{ background: '#262019', border: '1px solid #453B2F', maxWidth: 640, maxHeight: '90vh' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid #453B2F' }}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-              <Wand2 size={16} className="text-white"/>
+            <div className="bg-washi w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#F7F2E7', border: '1px solid #453B2F' }}>
+              <Wand2 size={16} style={{ color: '#2B2926' }}/>
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">AI Pipeline Assistant</h2>
-              <p className="text-xs text-slate-500">Generate a new diagram or edit the current one</p>
+              <h2 className="text-base font-bold" style={{ color: '#E8DFD0' }}>AI Pipeline Assistant</h2>
+              <p className="text-xs" style={{ color: '#9C8F7C' }}>Generate a new diagram or edit the current one</p>
             </div>
           </div>
-          <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
+          <button
+            onClick={handleClose}
+            className="p-1.5 rounded-lg transition-colors"
+            style={{ color: '#9C8F7C' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#322A21'; e.currentTarget.style.color = '#E8DFD0'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9C8F7C'; }}
+          >
             <X size={16}/>
           </button>
         </div>
@@ -199,14 +258,13 @@ export default function GenerateModal() {
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
           {/* Mode toggle */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-800/60 border border-slate-700">
+          <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(23,19,16,0.4)', border: '1px solid #453B2F' }}>
             <button
               onClick={() => handleModeSwitch('generate')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-                mode === 'generate'
-                  ? 'bg-indigo-600 text-white shadow'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all"
+              style={mode === 'generate'
+                ? { background: '#E3A854', color: '#241F19' }
+                : { color: '#9C8F7C' }}
             >
               <Sparkles size={13}/>
               Generate New
@@ -215,11 +273,10 @@ export default function GenerateModal() {
               onClick={() => handleModeSwitch('edit')}
               disabled={!hasCanvas}
               title={!hasCanvas ? 'Add components to the canvas first' : undefined}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                mode === 'edit'
-                  ? 'bg-indigo-600 text-white shadow'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              style={mode === 'edit'
+                ? { background: '#E3A854', color: '#241F19' }
+                : { color: '#9C8F7C' }}
             >
               <PencilLine size={13}/>
               Edit Current
@@ -228,7 +285,7 @@ export default function GenerateModal() {
 
           {/* Edit mode canvas stats banner */}
           {mode === 'edit' && hasCanvas && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-indigo-800 bg-indigo-900/20 text-xs text-indigo-300">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ border: '1px solid #6B4B23', background: 'rgba(227,168,84,0.1)', color: '#E3A854' }}>
               <PencilLine size={12}/>
               Editing current canvas — <span className="font-semibold">{nodes.length} components, {edges.length} connections</span>
             </div>
@@ -236,7 +293,7 @@ export default function GenerateModal() {
 
           {/* Prompt input */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: '#C7BCA9' }}>
               {mode === 'edit' ? 'Describe your changes' : 'Describe your data pipeline'}
             </label>
             <textarea
@@ -250,9 +307,12 @@ export default function GenerateModal() {
                   : 'e.g. Real-time fraud detection pipeline for banking transactions, processing 10k events/sec from our PostgreSQL database into Snowflake, with Airflow orchestration and Tableau dashboards...'
               }
               rows={4}
-              className="w-full px-4 py-3 rounded-xl border border-slate-600 bg-slate-800/60 text-white placeholder-slate-500 text-sm outline-none focus:border-indigo-500 transition-colors resize-none leading-relaxed"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors resize-none leading-relaxed"
+              style={{ border: '1px solid #453B2F', background: 'rgba(23,19,16,0.4)', color: '#E8DFD0' }}
+              onFocus={e => e.currentTarget.style.borderColor = '#E3A854'}
+              onBlur={e => e.currentTarget.style.borderColor = '#453B2F'}
             />
-            <p className="text-xs text-slate-600 mt-1.5">
+            <p className="text-xs mt-1.5" style={{ color: '#6E6355' }}>
               {mode === 'edit'
                 ? 'Describe what to add, remove, or change. Existing components will be preserved where possible. Press Ctrl+Enter to apply.'
                 : 'Mention your source systems, scale, cloud provider preference, and use case. Press Ctrl+Enter to generate.'
@@ -262,7 +322,7 @@ export default function GenerateModal() {
 
           {/* Example prompts */}
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#9C8F7C' }}>
               {mode === 'edit' ? 'Example edits' : 'Example prompts'}
             </p>
             <div className="grid grid-cols-1 gap-1.5">
@@ -270,7 +330,10 @@ export default function GenerateModal() {
                 <button
                   key={i}
                   onClick={() => { setPrompt(ex); textareaRef.current?.focus(); }}
-                  className="text-left text-xs px-3 py-2 rounded-lg border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-all hover:bg-slate-700/30 leading-relaxed"
+                  className="text-left text-xs px-3 py-2 rounded-lg transition-all leading-relaxed"
+                  style={{ border: '1px solid #453B2F', color: '#9C8F7C' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#E8DFD0'; e.currentTarget.style.borderColor = '#6E6355'; e.currentTarget.style.background = 'rgba(69,59,47,0.3)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#9C8F7C'; e.currentTarget.style.borderColor = '#453B2F'; e.currentTarget.style.background = 'none'; }}
                 >
                   {ex}
                 </button>
@@ -280,20 +343,34 @@ export default function GenerateModal() {
 
           {/* Status / Result area */}
           {status !== 'idle' && (
-            <div className={`rounded-xl border p-4 ${
-              status === 'loading' ? 'border-indigo-700 bg-indigo-900/20' :
-              status === 'success' ? 'border-emerald-700 bg-emerald-900/20' :
-              'border-red-700 bg-red-900/20'
-            }`}>
+            <div
+              className="rounded-xl p-4"
+              style={{
+                border: `1px solid ${
+                  status === 'loading' ? '#453B2F' :
+                  status === 'success' ? '#38492C' :
+                  status === 'clarify' ? '#622E12' : '#4D1C17'
+                }`,
+                background:
+                  status === 'loading' ? 'rgba(23,19,16,0.3)' :
+                  status === 'success' ? 'rgba(92,122,74,0.12)' :
+                  status === 'clarify' ? 'rgba(163,80,43,0.12)' : 'rgba(162,58,46,0.12)',
+              }}
+            >
               <div className="flex items-start gap-3">
-                {status === 'loading' && <Loader2 size={16} className="text-indigo-400 animate-spin mt-0.5 flex-shrink-0"/>}
-                {status === 'success' && <CheckCircle size={16} className="text-emerald-400 mt-0.5 flex-shrink-0"/>}
-                {status === 'error'   && <AlertCircle size={16} className="text-red-400 mt-0.5 flex-shrink-0"/>}
+                {status === 'loading' && <Loader2 size={16} className="animate-spin mt-0.5 flex-shrink-0" style={{ color: '#C7BCA9' }}/>}
+                {status === 'success' && <CheckCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#7FA366' }}/>}
+                {status === 'clarify'  && <AlertCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#C97B4E' }}/>}
+                {status === 'error'   && <AlertCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#E8735F' }}/>}
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium ${
-                    status === 'loading' ? 'text-indigo-300' :
-                    status === 'success' ? 'text-emerald-300' : 'text-red-300'
-                  }`}>{statusMsg}</p>
+                  <p
+                    className="text-sm font-medium"
+                    style={{
+                      color: status === 'loading' ? '#C7BCA9' :
+                        status === 'success' ? '#A3C48D' :
+                        status === 'clarify' ? '#D59A7D' : '#F09A8D',
+                    }}
+                  >{statusMsg}</p>
 
                   {status === 'loading' && streamingText && (
                     <StreamingPreview text={streamingText}/>
@@ -301,12 +378,63 @@ export default function GenerateModal() {
 
                   {status === 'success' && result && (
                     <div className="mt-2">
-                      <p className="text-xs text-slate-400 font-semibold">{result.name}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{result.description}</p>
+                      <p className="text-xs font-semibold" style={{ color: '#C7BCA9' }}>{result.name}</p>
+                      <p className="text-xs mt-0.5" style={{ color: '#9C8F7C' }}>{result.description}</p>
                     </div>
                   )}
                   {status === 'error' && (
-                    <p className="text-xs text-slate-500 mt-1">Check your prompt and try again.</p>
+                    <p className="text-xs mt-1" style={{ color: '#9C8F7C' }}>Check your prompt and try again.</p>
+                  )}
+
+                  {status === 'clarify' && clarifyQuestions && (
+                    <div className="mt-3 space-y-4">
+                      {clarifyQuestions.map((q, qi) => (
+                        <div key={qi}>
+                          <p className="text-xs font-medium mb-1.5" style={{ color: '#C7BCA9' }}>{q.question}</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(q.options || []).map((opt, oi) => {
+                              const isActive = !otherMode[qi] && clarifyAnswers[qi] === opt;
+                              return (
+                                <button
+                                  key={oi}
+                                  onClick={() => handleSelectAnswer(qi, opt)}
+                                  className="text-xs px-3 py-1.5 rounded-lg transition-colors"
+                                  style={isActive
+                                    ? { border: '1px solid #A3502B', background: 'rgba(163,80,43,0.25)', color: '#D59A7D' }
+                                    : { border: '1px solid #453B2F', color: '#9C8F7C' }}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                            <button
+                              onClick={() => handleToggleOther(qi)}
+                              className="text-xs px-3 py-1.5 rounded-lg transition-colors"
+                              style={otherMode[qi]
+                                ? { border: '1px solid #A3502B', background: 'rgba(163,80,43,0.25)', color: '#D59A7D' }
+                                : { border: '1px solid #453B2F', color: '#9C8F7C' }}
+                            >
+                              Other — describe it
+                            </button>
+                          </div>
+                          {otherMode[qi] && (
+                            <div className="mt-1.5">
+                              <input
+                                type="text"
+                                autoFocus
+                                value={clarifyAnswers[qi] || ''}
+                                onChange={e => handleCustomAnswerChange(qi, e.target.value)}
+                                maxLength={OTHER_ANSWER_MAX_LEN}
+                                placeholder="Type a short answer…"
+                                className="w-full text-xs px-3 py-1.5 rounded-lg outline-none"
+                                style={{ border: '1px solid #622E12', background: 'rgba(23,19,16,0.4)', color: '#E8DFD0' }}
+                              />
+                              <p className="text-[10px] mt-1" style={{ color: '#6E6355' }}>{(clarifyAnswers[qi] || '').length}/{OTHER_ANSWER_MAX_LEN}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
@@ -315,42 +443,64 @@ export default function GenerateModal() {
         </div>
 
         {/* Footer */}
-        <div className="px-6 pb-5 flex-shrink-0 border-t border-slate-700 pt-4">
+        <div className="px-6 pb-5 flex-shrink-0 pt-4" style={{ borderTop: '1px solid #453B2F' }}>
           {status === 'success' && result ? (
             <div className="flex gap-3">
               <button
                 onClick={handleClose}
-                className="px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:text-white text-sm font-medium transition-colors"
+                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                style={{ border: '1px solid #453B2F', color: '#C7BCA9' }}
               >
                 Discard
               </button>
               <button
                 onClick={() => handleApply(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-indigo-600 text-indigo-300 hover:text-white hover:bg-indigo-600/20 text-sm font-medium transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                style={{ border: '1px solid #E3A854', color: '#E3A854' }}
               >
                 Apply to Canvas
               </button>
               <button
                 onClick={() => handleApply(true)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                style={{ background: '#E3A854', color: '#241F19' }}
               >
                 <Wand2 size={13}/>
                 Apply + Auto-layout
+              </button>
+            </div>
+          ) : status === 'clarify' ? (
+            <div className="flex gap-3">
+              <button
+                onClick={handleClose}
+                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                style={{ border: '1px solid #453B2F', color: '#C7BCA9' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitClarification}
+                disabled={!allClarificationAnswered}
+                className="bg-washi flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: '#F7F2E7', color: '#2B2926', border: '1px solid #453B2F' }}
+              >
+                <Wand2 size={14}/> Continue
               </button>
             </div>
           ) : (
             <div className="flex gap-3">
               <button
                 onClick={handleClose}
-                className="px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:text-white text-sm font-medium transition-colors"
+                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                style={{ border: '1px solid #453B2F', color: '#C7BCA9' }}
               >
                 Cancel
               </button>
               <button
-                onClick={handleGenerate}
+                onClick={() => handleGenerate()}
                 disabled={!prompt.trim() || status === 'loading' || (mode === 'edit' && !hasCanvas)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                className="bg-washi flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: '#F7F2E7', color: '#2B2926', border: '1px solid #453B2F' }}
               >
                 {status === 'loading'
                   ? <><Loader2 size={14} className="animate-spin"/> {mode === 'edit' ? 'Editing…' : 'Generating…'}</>

@@ -18,7 +18,7 @@ function Toggle({ checked, onToggle, P }) {
       <div style={{
         width: 18, height: 18, borderRadius: '50%',
         background: '#fff',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+        boxShadow: '0 1px 3px rgba(23,19,16,0.3)',
         transition: 'none',
       }}/>
     </button>
@@ -35,7 +35,7 @@ export default function AccountSettingsModal() {
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.4)',
+        background: 'rgba(23,19,16,0.4)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
       onClick={e => { if (e.target === e.currentTarget) closeAccountSettings(); }}
@@ -43,7 +43,7 @@ export default function AccountSettingsModal() {
       <div style={{
         width: 420, background: P.bg, borderRadius: 6,
         border: `1px solid ${P.divider}`,
-        boxShadow: '0 16px 48px rgba(0,0,0,0.25)',
+        boxShadow: '0 16px 48px rgba(23,19,16,0.3)',
         overflow: 'hidden',
       }}>
         {/* Header */}

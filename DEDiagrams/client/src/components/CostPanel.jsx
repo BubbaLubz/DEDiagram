@@ -11,17 +11,17 @@ function fmtUSD(n) {
 }
 
 function costColor(monthly) {
-  if (monthly < 100)  return '#22c55e';
-  if (monthly < 500)  return '#f59e0b';
-  if (monthly < 2000) return '#f97316';
-  return '#ef4444';
+  if (monthly < 100)  return '#5C7A4A';
+  if (monthly < 500)  return '#C99A3E';
+  if (monthly < 2000) return '#BC5A34';
+  return '#A23A2E';
 }
 
 function costBg(monthly) {
-  if (monthly < 100)  return '#f0fdf4';
-  if (monthly < 500)  return '#fffbeb';
-  if (monthly < 2000) return '#fff7ed';
-  return '#fef2f2';
+  if (monthly < 100)  return '#E3E8DA';
+  if (monthly < 500)  return '#EFE4C8';
+  if (monthly < 2000) return '#EEDCCD';
+  return '#EBD6D2';
 }
 
 function CostBar({ monthly, maxMonthly }) {
@@ -29,7 +29,11 @@ function CostBar({ monthly, maxMonthly }) {
   const pct = maxMonthly > 0 ? Math.min(100, (monthly / maxMonthly) * 100) : 0;
   return (
     <div style={{ width: '100%', height: 3, background: P.divider, borderRadius: 2, overflow: 'hidden', marginTop: 6 }}>
-      <div style={{ height: '100%', borderRadius: 2, transition: 'width 0.5s', width: `${pct}%`, background: costColor(monthly) }}/>
+      <div style={{
+        height: '100%', width: '100%', borderRadius: 2,
+        transformOrigin: 'left', transform: `scaleX(${pct / 100})`,
+        transition: 'transform 0.5s', background: costColor(monthly),
+      }}/>
     </div>
   );
 }
@@ -111,8 +115,8 @@ export default function CostPanel() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: `1px solid ${P.divider}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#D4EDE0', border: `1px solid #A5C9B6` }}>
-            <DollarSign size={14} style={{ color: '#2D7A4F' }}/>
+          <div style={{ width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#E3E8DA', border: `1px solid #A9BB98` }}>
+            <DollarSign size={14} style={{ color: '#435C36' }}/>
           </div>
           <div>
             <h2 style={{ fontSize: 13, fontWeight: 700, color: P.text }}>Cost Estimator</h2>
@@ -206,7 +210,7 @@ export default function CostPanel() {
             <div style={{ display: 'flex', gap: 4 }}>
               {['high', 'medium', 'low'].map(c => {
                 const active = overallConfidence === c;
-                const clr = c === 'high' ? '#22c55e' : c === 'medium' ? '#f59e0b' : '#9ca3af';
+                const clr = c === 'high' ? '#5C7A4A' : c === 'medium' ? '#C99A3E' : '#9C8F7C';
                 return (
                   <span key={c} style={{
                     fontSize: 11, padding: '2px 8px', borderRadius: 2,
@@ -264,7 +268,7 @@ function CostItem({ item, maxMonthly, expanded, onToggle }) {
             <span style={{
               fontSize: 10, padding: '1px 6px', borderRadius: 2, flexShrink: 0,
               background: P.card, border: `1px solid ${P.divider}`,
-              color: item.confidence === 'high' ? '#22c55e' : item.confidence === 'medium' ? '#f59e0b' : P.faint,
+              color: item.confidence === 'high' ? '#5C7A4A' : item.confidence === 'medium' ? '#C99A3E' : P.faint,
             }}>
               {item.confidence}
             </span>

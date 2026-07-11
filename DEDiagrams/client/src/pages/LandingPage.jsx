@@ -3,19 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
-// Derived from the reference image: Japanese concrete box house at dusk.
-// Cool structural exterior (concrete frame) ↔ warm glowing interior.
+// See DESIGN.md — derived from two reference photographs of Japanese
+// minimalist architecture. The hero's border is a wood frame (Cedar Deep),
+// echoing the wooden sliding-door frame in the living-room reference photo,
+// not a concrete structural line. Sumi Charcoal is reserved for exactly one
+// object on this page — the primary CTA button — per the One Dark Object Rule.
 const C = {
-  bg:       '#F7F4EF',   // warm parchment
-  surface:  '#EDE9E2',   // warm cream (inside the frame)
-  frame:    '#1C1814',   // deep charcoal — the concrete structure
-  text:     '#1C1814',
-  muted:    '#7A726A',
-  faint:    '#B0A89E',
-  divider:  '#D9D3CB',
-  cta:      '#1C1814',
-  ctaHover: '#2E2822',
-  amber:    '#B87040',   // warm amber — the interior glow
+  bg:      '#F1EBDF', // plaster bg
+  surface: '#E7DFD0', // plaster surface
+  frame:   '#7A5233', // cedar deep — the wood frame
+  text:    '#241F19', // ink
+  muted:   '#7C7264',
+  faint:   '#A79A87',
+  divider: '#D2C6AF', // board seam
+  cta:     '#2B2926', // sumi charcoal — the one dark object on this page
+  ctaHover:'#1A1815',
+  amber:   '#B87040', // honey oak
 };
 
 const GITHUB_ICON = (
@@ -45,11 +48,14 @@ export default function LandingPage() {
 
   // If already authenticated, skip the landing page
   useEffect(() => {
-    if (!loading && user) navigate('/app');
+    if (!loading && user) navigate('/projects');
   }, [user, loading, navigate]);
 
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', color: C.text, fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div
+      className="bg-grain"
+      style={{ background: C.bg, minHeight: '100vh', color: C.text, fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}
+    >
 
       {/* ── Nav ── */}
       <nav style={{
@@ -80,7 +86,7 @@ export default function LandingPage() {
         minHeight: 'calc(100vh - 61px)',
       }}>
 
-        {/* The concrete frame — fades in on load */}
+        {/* The wood frame — echoes the sliding-door frame in the reference photo */}
         <div style={{
           border: `3px solid ${C.frame}`,
           maxWidth: 660,
@@ -92,14 +98,14 @@ export default function LandingPage() {
           animation: 'frameIn 0.7s ease-out 0.1s forwards',
         }}>
 
-          {/* Corner accent — warm amber, like interior light catching the frame edge */}
+          {/* Corner accent — honey oak, like light catching the frame's edge */}
           <div style={{
-            position: 'absolute', top: -1, left: -1,
-            width: 40, height: 3, background: C.amber,
+            position: 'absolute', top: -3, left: -3,
+            width: 44, height: 3, background: C.amber,
           }}/>
           <div style={{
-            position: 'absolute', top: -1, left: -1,
-            width: 3, height: 40, background: C.amber,
+            position: 'absolute', top: -3, left: -3,
+            width: 3, height: 44, background: C.amber,
           }}/>
 
           <p style={{
@@ -112,8 +118,8 @@ export default function LandingPage() {
           <h1 style={{
             fontSize: 'clamp(28px, 4vw, 42px)',
             fontWeight: 300,
-            lineHeight: 1.2,
-            letterSpacing: '-0.02em',
+            lineHeight: 1.3,
+            letterSpacing: '-0.01em',
             color: C.text,
             marginBottom: 20,
           }}>
@@ -147,7 +153,7 @@ export default function LandingPage() {
           bottom edge — then falls into position one by one.
         */}
         <div style={{ maxWidth: 660, width: '100%', overflow: 'hidden' }}>
-          <div style={{
+          <div className="bg-board-seam" style={{
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
             borderLeft: `1px solid ${C.divider}`,
           }}>
@@ -193,6 +199,9 @@ export default function LandingPage() {
           to   { opacity: 1; transform: translateY(0); }
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+          [style*="animation"] { animation: none !important; opacity: 1 !important; }
+        }
       `}</style>
     </div>
   );
@@ -207,7 +216,7 @@ function GithubButton() {
         display: 'inline-flex', alignItems: 'center', gap: 10,
         padding: '12px 24px',
         background: hover ? C.ctaHover : C.cta,
-        color: '#F7F4EF',
+        color: '#F7F2E7',
         textDecoration: 'none',
         fontSize: 14, fontWeight: 500,
         transition: 'background 0.15s',

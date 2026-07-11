@@ -43,6 +43,24 @@ export const createDiagramSlice = (set, get) => ({
     }
   },
 
+  createNewDiagram: async () => {
+    try {
+      const { data } = await axios.post('/api/diagrams', {
+        name: 'Untitled Pipeline', description: '', nodes: [], edges: [], docCells: [],
+      });
+      set({
+        nodes: [], edges: [], docCells: normalizeDocCells([]), activeCellId: null,
+        currentDiagramId: data.id, currentDiagramName: data.name, isDirty: false,
+        selectedNode: null, isDetailOpen: false,
+      });
+      await get().fetchSavedDiagrams();
+      return data;
+    } catch (err) {
+      console.error('Failed to create new diagram:', err);
+      throw err;
+    }
+  },
+
   loadDiagram: async (id) => {
     try {
       const { data } = await axios.get(`/api/diagrams/${id}`);
@@ -59,6 +77,20 @@ export const createDiagramSlice = (set, get) => ({
       });
     } catch (err) {
       console.error('Failed to load diagram:', err);
+      throw err;
+    }
+  },
+
+  renameDiagram: async (id, name) => {
+    try {
+      const { data } = await axios.put(`/api/diagrams/${id}`, { name });
+      set(state => ({
+        savedDiagrams: state.savedDiagrams.map(d => d.id === id ? { ...d, name: data.name, updatedAt: data.updatedAt } : d),
+        currentDiagramName: state.currentDiagramId === id ? data.name : state.currentDiagramName,
+      }));
+      return data;
+    } catch (err) {
+      console.error('Failed to rename diagram:', err);
       throw err;
     }
   },
