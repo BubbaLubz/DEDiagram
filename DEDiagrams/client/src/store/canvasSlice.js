@@ -120,10 +120,14 @@ export const createCanvasSlice = (set, get) => ({
   closeDetail: () => set({ isDetailOpen: false, selectedNode: null }),
 
   loadTemplate: (template) => {
+    // Deliberately keeps currentDiagramId as-is (not cleared to force a
+    // save-as-new) — clearing it unmounts the live-collab RoomProvider in
+    // App.jsx, which tears down the Yjs bridge before it can push the new
+    // nodes/edges, so a template loaded mid-session never reaches other
+    // collaborators and the room silently dies.
     set({
       nodes: template.nodes,
       edges: template.edges,
-      currentDiagramId: null,
       currentDiagramName: template.name,
       isDirty: true,
       selectedNode: null,

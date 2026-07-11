@@ -148,9 +148,9 @@ describe('canvasSlice › loadTemplate', () => {
     expect(store.getState().currentDiagramName).toBe('Kafka Pipeline');
   });
 
-  it('clears currentDiagramId to force save-as-new', () => {
+  it('preserves currentDiagramId so a live-collab room stays connected', () => {
     store.getState().loadTemplate({ name: 'T', nodes: [], edges: [] });
-    expect(store.getState().currentDiagramId).toBeNull();
+    expect(store.getState().currentDiagramId).toBe('existing-id');
   });
 
   it('sets isDirty', () => {
