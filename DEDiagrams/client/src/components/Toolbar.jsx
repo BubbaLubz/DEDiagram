@@ -23,7 +23,7 @@ export default function Toolbar() {
   const { autoLayout, fitView, exportImage } = useCanvasActions();
   const {
     currentDiagramName, setDiagramName, isDirty,
-    openSaveModal, openLoadModal, clearCanvas,
+    openSaveModal, openLoadModal,
     selectedNode, edges, updateEdgeData, nodes, deleteSelected,
     openGenerateModal, toggleCostPanel, isCostPanelOpen,
     requestLoadTemplate,
@@ -299,7 +299,6 @@ export default function Toolbar() {
       {(selectedNode || nodes.some(n => n.selected)) && (
         <TBtn onClick={deleteSelected} title="Delete selected (Del)" Icon={Trash2} danger/>
       )}
-      <TBtn onClick={clearCanvas} title="Clear canvas" Icon={RotateCcw} danger/>
 
       <Sep/>
 

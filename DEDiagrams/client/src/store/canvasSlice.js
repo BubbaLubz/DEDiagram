@@ -159,18 +159,4 @@ export const createCanvasSlice = (set, get) => ({
   },
 
   cancelLoadTemplate: () => set({ isConfirmClearOpen: false, pendingTemplate: null }),
-
-  clearCanvas: () => {
-    set({
-      nodes: [],
-      edges: [],
-      currentDiagramId: null,
-      currentDiagramName: 'Untitled Pipeline',
-      isDirty: false,
-      selectedNode: null,
-      isDetailOpen: false,
-      docCells: [{ id: uuidv4(), text: '', nodeIds: [] }],
-      activeCellId: null,
-    });
-  },
 });

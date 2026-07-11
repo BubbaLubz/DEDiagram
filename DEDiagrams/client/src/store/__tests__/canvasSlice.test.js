@@ -96,36 +96,6 @@ describe('canvasSlice › updateNodeData', () => {
   });
 });
 
-// ─── clearCanvas ──────────────────────────────────────────────────────────────
-
-describe('canvasSlice › clearCanvas', () => {
-  let store;
-
-  beforeEach(() => {
-    store = makeStore();
-    store.getState().addNode({ id: 'n1', type: 'component', position: { x: 0, y: 0 }, data: {} });
-    store.setState({ edges: [{ id: 'e1', source: 'n1', target: 'n2', type: 'labeled', data: {} }] });
-    store.setState({ currentDiagramId: 'some-id', isDirty: true });
-  });
-
-  it('empties nodes and edges', () => {
-    store.getState().clearCanvas();
-    expect(store.getState().nodes).toHaveLength(0);
-    expect(store.getState().edges).toHaveLength(0);
-  });
-
-  it('resets diagram name to "Untitled Pipeline"', () => {
-    store.getState().clearCanvas();
-    expect(store.getState().currentDiagramName).toBe('Untitled Pipeline');
-  });
-
-  it('clears currentDiagramId and isDirty', () => {
-    store.getState().clearCanvas();
-    expect(store.getState().currentDiagramId).toBeNull();
-    expect(store.getState().isDirty).toBe(false);
-  });
-});
-
 // ─── loadTemplate ─────────────────────────────────────────────────────────────
 
 describe('canvasSlice › loadTemplate', () => {
