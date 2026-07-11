@@ -264,8 +264,11 @@ const db = {
 
   async getDiagramMembers(diagramId) {
     const supabase = getSupabase();
+    // diagram_permissions has two FKs to users (user_id, invited_by), so the
+    // embedded select must be qualified by FK name or PostgREST can't tell
+    // which relationship to embed and errors out.
     const { data, error } = await supabase.from('diagram_permissions')
-      .select('role, user_id, users(display_name, avatar_url, email)')
+      .select('role, user_id, users!diagram_permissions_user_id_fkey(display_name, avatar_url, email)')
       .eq('diagram_id', diagramId);
     if (error) throw error;
     return data;
