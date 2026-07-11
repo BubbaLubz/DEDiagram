@@ -13,6 +13,7 @@ import AccountSettingsModal from './components/modals/AccountSettingsModal';
 import ShareModal from './components/modals/ShareModal';
 import ConfirmClearModal from './components/modals/ConfirmClearModal';
 import useYjsSync from './collab/useYjsSync';
+import SelectionPresenceProvider from './collab/SelectionPresenceProvider';
 import useStore from './store';
 import { useTheme } from './theme';
 
@@ -22,9 +23,36 @@ function CollabSync() {
   return null;
 }
 
-export default function App() {
-  const { isDetailOpen, isCostPanelOpen, fetchSavedDiagrams, darkMode, currentDiagramId } = useStore();
+function AppShell() {
+  const { isDetailOpen, isCostPanelOpen } = useStore();
   const P = useTheme();
+
+  return (
+    <ReactFlowProvider>
+      <div
+        className="h-screen w-screen flex flex-col overflow-hidden"
+        style={{ background: P.bg, fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}
+      >
+        <Toolbar/>
+        <div className="flex flex-1 overflow-hidden">
+          <LeftSidebar/>
+          <DiagramCanvas/>
+          {isDetailOpen && !isCostPanelOpen && <DetailPanel/>}
+          {isCostPanelOpen && <CostPanel/>}
+        </div>
+      </div>
+      <DocPanel/>
+      <SaveModal/>
+      <GenerateModal/>
+      <ConfirmClearModal/>
+      <AccountSettingsModal/>
+      <ShareModal/>
+    </ReactFlowProvider>
+  );
+}
+
+export default function App() {
+  const { fetchSavedDiagrams, darkMode, currentDiagramId } = useStore();
 
   useEffect(() => {
     fetchSavedDiagrams();
@@ -45,31 +73,19 @@ export default function App() {
 
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
-      {currentDiagramId && (
-        <RoomProvider id={currentDiagramId} initialPresence={{}}>
-          <CollabSync/>
+      {currentDiagramId ? (
+        // RoomProvider wraps the whole shell (not just the Yjs bridge) so
+        // presence hooks (selection highlights, hover labels) are reachable
+        // from ComponentNode, deep inside DiagramCanvas.
+        <RoomProvider id={currentDiagramId} initialPresence={{ selectedNodeId: null }}>
+          <SelectionPresenceProvider>
+            <CollabSync/>
+            <AppShell/>
+          </SelectionPresenceProvider>
         </RoomProvider>
+      ) : (
+        <AppShell/>
       )}
-      <ReactFlowProvider>
-        <div
-          className="h-screen w-screen flex flex-col overflow-hidden"
-          style={{ background: P.bg, fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}
-        >
-          <Toolbar/>
-          <div className="flex flex-1 overflow-hidden">
-            <LeftSidebar/>
-            <DiagramCanvas/>
-            {isDetailOpen && !isCostPanelOpen && <DetailPanel/>}
-            {isCostPanelOpen && <CostPanel/>}
-          </div>
-        </div>
-        <DocPanel/>
-        <SaveModal/>
-        <GenerateModal/>
-        <ConfirmClearModal/>
-        <AccountSettingsModal/>
-        <ShareModal/>
-      </ReactFlowProvider>
     </LiveblocksProvider>
   );
 }

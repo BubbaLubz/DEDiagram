@@ -3,6 +3,7 @@ import * as LucideIcons from 'lucide-react';
 import { Handle, Position } from 'reactflow';
 import { COMPONENTS, getCategory } from '../../data/componentLibrary';
 import useStore from '../../store';
+import { useNodeSelections } from '../../collab/SelectionPresenceContext';
 
 const DefaultIcon = ({ color, iconText }) => (
   <svg viewBox="0 0 32 32" className="w-full h-full">
@@ -30,10 +31,21 @@ function ComponentNode({ id, data, selected }) {
   // Pulses when this node is the one described by the doc panel's active cell.
   const isDocActive = useStore(s => s.docCells.find(c => c.id === s.activeCellId)?.nodeIds?.includes(id) ?? false);
 
+  // Other collaborators currently selecting this node (live presence, not
+  // persisted). The ring is always shown; the name label only on hover.
+  const otherSelections = useNodeSelections(id);
+  const primaryOther = otherSelections[0];
+
   const isCustomBox = data.componentType === 'custom_box';
   const LucideIcon = !isCustomBox && component.lucideIcon
     ? LucideIcons[component.lucideIcon]
     : null;
+
+  const ownShadow = isDocActive ? undefined : selected
+    ? `0 0 0 2px ${category.color}44, 0 8px 24px rgba(23,19,16,0.55)`
+    : hovered
+    ? `0 4px 16px rgba(23,19,16,0.45)`
+    : `0 2px 8px rgba(23,19,16,0.35)`;
 
   return (
     <div
@@ -42,16 +54,25 @@ function ComponentNode({ id, data, selected }) {
         width: 200,
         borderColor: selected ? category.color : hovered ? category.color + 'aa' : '#4A3B2C',
         background: '#2A2119',
-        boxShadow: isDocActive ? undefined : selected
-          ? `0 0 0 2px ${category.color}44, 0 8px 24px rgba(23,19,16,0.55)`
-          : hovered
-          ? `0 4px 16px rgba(23,19,16,0.45)`
-          : `0 2px 8px rgba(23,19,16,0.35)`,
+        boxShadow: [ownShadow, primaryOther && `0 0 0 3px ${primaryOther.color}`].filter(Boolean).join(', ') || undefined,
         ...(isDocActive ? { '--doc-pulse-color': `${category.color}90` } : {}),
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {hovered && primaryOther && (
+        <div
+          style={{
+            position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)',
+            background: primaryOther.color, color: '#241F19', fontSize: 11, fontWeight: 600,
+            padding: '3px 9px', borderRadius: 6, whiteSpace: 'nowrap', pointerEvents: 'none',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.35)', zIndex: 20,
+          }}
+        >
+          {otherSelections.map(s => s.name).join(', ')}
+        </div>
+      )}
+
       <Handle
         type="target"
         position={Position.Left}
