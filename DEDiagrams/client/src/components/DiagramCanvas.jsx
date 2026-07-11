@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Background, Controls, MiniMap, BackgroundVariant,
   useReactFlow, useViewport, MarkerType, Panel,
-  getNodesBounds, getViewportForBounds,
+  getNodesBounds, getViewportForBounds, SelectionMode,
 } from 'reactflow';
 import { toPng } from 'html-to-image';
 import { graphlib as dagreGraphlib, layout as dagreLayout } from '@dagrejs/dagre';
@@ -252,6 +252,7 @@ export default function DiagramCanvas() {
         panOnScrollMode="free"
         zoomOnPinch={true}
         selectionOnDrag={!isDrawingMode}
+        selectionMode={SelectionMode.Partial}
         nodesDraggable={!isDrawingMode}
         onPaneContextMenu={(e) => e.preventDefault()}
         snapToGrid

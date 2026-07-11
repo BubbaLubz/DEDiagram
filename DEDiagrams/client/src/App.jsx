@@ -77,7 +77,7 @@ export default function App() {
         // RoomProvider wraps the whole shell (not just the Yjs bridge) so
         // presence hooks (selection highlights, hover labels) are reachable
         // from ComponentNode, deep inside DiagramCanvas.
-        <RoomProvider id={currentDiagramId} initialPresence={{ selectedNodeId: null }}>
+        <RoomProvider id={currentDiagramId} initialPresence={{ selectedNodeIds: [] }}>
           <SelectionPresenceProvider>
             <CollabSync/>
             <AppShell/>
