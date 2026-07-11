@@ -164,8 +164,12 @@ export default function DocPanel() {
         // Anchored between the 280px left sidebar (+ ReactFlow's bottom-left
         // zoom controls) and the bottom-right MiniMap, rather than centered on
         // the full viewport — otherwise this overlaps one side or the other.
+        // Deliberately no upper width cap: a fixed max-width (e.g. 980px) left
+        // a growing dead gap before the MiniMap on wide/ultrawide monitors,
+        // making the panel read as shifted toward the left sidebar instead of
+        // properly filling the space between the two fixed side elements.
         position: 'fixed', bottom: 0, left: 320,
-        width: 'min(980px, calc(100vw - 320px - 220px))', zIndex: 40,
+        width: 'calc(100vw - 320px - 220px)', zIndex: 40,
         background: P.surface, border: `1px solid ${P.divider}`, borderBottom: 'none',
         borderTopLeftRadius: 10, borderTopRightRadius: 10,
         boxShadow: '0 -8px 24px rgba(23,19,16,0.2)', overflow: 'hidden',
