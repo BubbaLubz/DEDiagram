@@ -23,6 +23,7 @@ export default function useYjsSync() {
     const yNodes = yDoc.getMap('nodes');
     const yEdges = yDoc.getMap('edges');
     const yDocCells = yDoc.getArray('docCells');
+    const yMeta = yDoc.getMap('metadata');
     let initialized = false;
 
     // What was last written to (or read from) each shared type — lets the
@@ -31,15 +32,20 @@ export default function useYjsSync() {
     let lastNodes = new Map();
     let lastEdges = new Map();
     let lastDocCells = [];
+    let lastName = null;
 
     const applyRemoteState = () => {
       const nodes = Array.from(yNodes.values());
       const edges = Array.from(yEdges.values());
       const docCells = yDocCells.toArray();
+      const name = yMeta.get('name');
       lastNodes = new Map(nodes.map(n => [n.id, n]));
       lastEdges = new Map(edges.map(e => [e.id, e]));
       lastDocCells = docCells;
-      useStore.setState({ nodes, edges, docCells });
+      // Older rooms synced before name-sharing existed won't have this key
+      // yet — leave whatever REST already loaded into currentDiagramName.
+      if (name !== undefined) lastName = name;
+      useStore.setState({ nodes, edges, docCells, ...(name !== undefined ? { currentDiagramName: name } : {}) });
     };
 
     // First client into an empty room seeds Yjs from whatever's already
@@ -48,16 +54,18 @@ export default function useYjsSync() {
     const handleSync = (isSynced) => {
       if (!isSynced || initialized) return;
       initialized = true;
-      if (yNodes.size === 0 && yEdges.size === 0 && yDocCells.length === 0) {
-        const { nodes, edges, docCells } = useStore.getState();
+      if (yNodes.size === 0 && yEdges.size === 0 && yDocCells.length === 0 && !yMeta.has('name')) {
+        const { nodes, edges, docCells, currentDiagramName } = useStore.getState();
         yDoc.transact(() => {
           nodes.forEach(n => yNodes.set(n.id, n));
           edges.forEach(e => yEdges.set(e.id, e));
           yDocCells.insert(0, docCells);
+          yMeta.set('name', currentDiagramName);
         }, 'init');
         lastNodes = new Map(nodes.map(n => [n.id, n]));
         lastEdges = new Map(edges.map(e => [e.id, e]));
         lastDocCells = docCells;
+        lastName = currentDiagramName;
       } else {
         applyRemoteState();
       }
@@ -76,6 +84,7 @@ export default function useYjsSync() {
     yNodes.observe(onRemoteChange);
     yEdges.observe(onRemoteChange);
     yDocCells.observe(onRemoteChange);
+    yMeta.observe(onRemoteChange);
 
     // Local changes mirror into the shared doc, coalesced to once per
     // animation frame — a drag or a fast typist fires many store updates a
@@ -84,8 +93,9 @@ export default function useYjsSync() {
     let rafId = null;
     const flush = () => {
       rafId = null;
-      const { nodes, edges, docCells } = useStore.getState();
+      const { nodes, edges, docCells, currentDiagramName } = useStore.getState();
       let didSomething = false;
+      const nameChanged = currentDiagramName !== lastName;
 
       const nextNodes = new Map();
       const changedNodes = [];
@@ -116,7 +126,7 @@ export default function useYjsSync() {
       }
       const docCellsChanged = endOld > start || endNew > start;
 
-      if (changedNodes.length || removedNodeIds.length || changedEdges.length || removedEdgeIds.length || docCellsChanged) {
+      if (changedNodes.length || removedNodeIds.length || changedEdges.length || removedEdgeIds.length || docCellsChanged || nameChanged) {
         yDoc.transact(() => {
           changedNodes.forEach(n => yNodes.set(n.id, n));
           removedNodeIds.forEach(id => yNodes.delete(id));
@@ -126,6 +136,7 @@ export default function useYjsSync() {
             if (endOld > start) yDocCells.delete(start, endOld - start);
             if (endNew > start) yDocCells.insert(start, docCells.slice(start, endNew));
           }
+          if (nameChanged) yMeta.set('name', currentDiagramName);
         }, 'local');
         didSomething = true;
       }
@@ -134,12 +145,14 @@ export default function useYjsSync() {
         lastNodes = nextNodes;
         lastEdges = nextEdges;
         lastDocCells = docCells;
+        lastName = currentDiagramName;
       }
     };
 
     const unsubscribe = useStore.subscribe((state, prevState) => {
       if (!initialized) return;
-      if (state.nodes === prevState.nodes && state.edges === prevState.edges && state.docCells === prevState.docCells) return;
+      if (state.nodes === prevState.nodes && state.edges === prevState.edges
+        && state.docCells === prevState.docCells && state.currentDiagramName === prevState.currentDiagramName) return;
       if (rafId === null) rafId = requestAnimationFrame(flush);
     });
 
@@ -149,6 +162,7 @@ export default function useYjsSync() {
       yNodes.unobserve(onRemoteChange);
       yEdges.unobserve(onRemoteChange);
       yDocCells.unobserve(onRemoteChange);
+      yMeta.unobserve(onRemoteChange);
       unsubscribe();
     };
   }, [room]);
