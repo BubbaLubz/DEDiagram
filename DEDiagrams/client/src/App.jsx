@@ -29,6 +29,14 @@ export default function App() {
     fetchSavedDiagrams();
   }, []);
 
+  // Google-Docs-style autosave: periodically flush unsaved edits to the
+  // server without requiring the Save modal. No-ops when there's nothing
+  // dirty or no diagram id yet (see diagramSlice.autosave).
+  useEffect(() => {
+    const id = setInterval(() => useStore.getState().autosave(), 4000);
+    return () => clearInterval(id);
+  }, []);
+
   // Keep <html data-theme> in sync so CSS variables and index.css rules apply
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');

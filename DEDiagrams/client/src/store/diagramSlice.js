@@ -1,6 +1,10 @@
 import axios from 'axios';
 import { normalizeDocCells } from './canvasSlice';
 
+// Guards against overlapping PUT requests if a tick fires while the
+// previous autosave is still in flight (e.g. a slow connection).
+let _autosaveInFlight = false;
+
 export const createDiagramSlice = (set, get) => ({
   // State
   currentDiagramId: null,
@@ -92,6 +96,32 @@ export const createDiagramSlice = (set, get) => ({
     } catch (err) {
       console.error('Failed to rename diagram:', err);
       throw err;
+    }
+  },
+
+  // Silent background save — only patches nodes/edges/docCells/name (no
+  // description/isTemplate, which live only in SaveModal's local state), so
+  // it never clobbers those fields. Skips diagrams that were never saved
+  // once (no id to PUT to — those still need an explicit first Save).
+  autosave: async () => {
+    const { currentDiagramId, isDirty, nodes, edges, docCells, currentDiagramName } = get();
+    if (!currentDiagramId || !isDirty || _autosaveInFlight) return;
+    _autosaveInFlight = true;
+    try {
+      await axios.put(`/api/diagrams/${currentDiagramId}`, {
+        name: currentDiagramName, nodes, edges, docCells,
+      });
+      // Only clear isDirty if nothing changed again while the request was
+      // in flight — otherwise we'd silently drop that newer edit.
+      const state = get();
+      if (state.nodes === nodes && state.edges === edges
+        && state.docCells === docCells && state.currentDiagramName === currentDiagramName) {
+        set({ isDirty: false });
+      }
+    } catch (err) {
+      console.error('Autosave failed:', err);
+    } finally {
+      _autosaveInFlight = false;
     }
   },
 
