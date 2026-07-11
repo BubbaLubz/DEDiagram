@@ -126,14 +126,21 @@ const db = {
   // Only patches the fields actually provided — never overwrites existing
   // profile data with blanks (e.g. a provider that omits email on a later
   // login shouldn't erase the email captured on an earlier one).
+  //
+  // Only called on rows already known to exist (findOrCreateOAuthUser's
+  // refresh path), so this is a plain UPDATE rather than an upsert — an
+  // upsert with a partial column set fails NOT NULL constraints (like
+  // email) on the attempted insert row even when the conflict path is the
+  // one that actually runs.
   async upsertUser({ id, email, displayName, avatarUrl }) {
     const supabase = getSupabase();
-    const patch = { id };
+    const patch = {};
     if (email) patch.email = email;
     if (displayName) patch.display_name = displayName;
     if (avatarUrl) patch.avatar_url = avatarUrl;
+    if (Object.keys(patch).length === 0) return db.getUserById(id);
     const { data, error } = await supabase.from('users')
-      .upsert(patch, { onConflict: 'id', ignoreDuplicates: false })
+      .update(patch).eq('id', id)
       .select().single();
     if (error) throw error;
     return data;
