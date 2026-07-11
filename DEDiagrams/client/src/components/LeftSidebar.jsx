@@ -128,13 +128,13 @@ function ComponentsTab() {
 
 function TemplatesTab() {
   const P = useTheme();
-  const { requestLoadTemplate } = useStore();
+  const { requestCanvasReplace, loadTemplate } = useStore();
 
   return (
     <div style={{ overflowY: 'auto', flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <p style={{ fontSize: 11, color: P.faint, padding: '0 4px 4px' }}>Click to load a starter architecture</p>
       {BUILT_IN_TEMPLATES.map(tpl => (
-        <TemplateCard key={tpl.id} tpl={tpl} onLoad={() => requestLoadTemplate(tpl)}/>
+        <TemplateCard key={tpl.id} tpl={tpl} onLoad={() => requestCanvasReplace(tpl.name, () => loadTemplate(tpl))}/>
       ))}
     </div>
   );
@@ -179,11 +179,13 @@ function TemplateCard({ tpl, onLoad }) {
 
 function SavedTab() {
   const P = useTheme();
-  const { savedDiagrams, loadDiagram, deleteDiagram, fetchSavedDiagrams } = useStore();
+  const { savedDiagrams, loadDiagram, deleteDiagram, fetchSavedDiagrams, requestCanvasReplace } = useStore();
   const [loading, setLoading] = useState(false);
 
-  const handleLoad = async (id) => {
-    try { await loadDiagram(id); } catch {}
+  const handleLoad = (d) => {
+    requestCanvasReplace(d.name, async () => {
+      try { await loadDiagram(d.id); } catch {}
+    });
   };
 
   const handleDelete = async (e, id) => {
@@ -225,7 +227,7 @@ function SavedTab() {
           {loading ? '…' : 'Refresh'}
         </button>
       </div>
-      {savedDiagrams.map(d => <SavedCard key={d.id} d={d} onLoad={() => handleLoad(d.id)} onDelete={(e) => handleDelete(e, d.id)}/>)}
+      {savedDiagrams.map(d => <SavedCard key={d.id} d={d} onLoad={() => handleLoad(d)} onDelete={(e) => handleDelete(e, d.id)}/>)}
     </div>
   );
 }

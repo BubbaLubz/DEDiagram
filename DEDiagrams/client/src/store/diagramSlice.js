@@ -5,6 +5,12 @@ import { normalizeDocCells } from './canvasSlice';
 // previous autosave is still in flight (e.g. a slow connection).
 let _autosaveInFlight = false;
 
+// node/edge `.selected` is local ReactFlow UI state, not real diagram
+// content — never persist it, so a diagram someone happened to have a node
+// selected on at save time doesn't load with that node pre-selected for
+// everyone who opens it afterward.
+const stripSelected = ({ selected, ...rest }) => rest;
+
 export const createDiagramSlice = (set, get) => ({
   // State
   currentDiagramId: null,
@@ -25,16 +31,18 @@ export const createDiagramSlice = (set, get) => ({
 
   saveDiagram: async (name, description, isTemplate) => {
     const { nodes, edges, docCells, currentDiagramId } = get();
+    const cleanNodes = nodes.map(stripSelected);
+    const cleanEdges = edges.map(stripSelected);
     try {
       let result;
       if (currentDiagramId) {
         const { data } = await axios.put(`/api/diagrams/${currentDiagramId}`, {
-          name, description, nodes, edges, docCells, isTemplate,
+          name, description, nodes: cleanNodes, edges: cleanEdges, docCells, isTemplate,
         });
         result = data;
       } else {
         const { data } = await axios.post('/api/diagrams', {
-          name, description, nodes, edges, docCells, isTemplate,
+          name, description, nodes: cleanNodes, edges: cleanEdges, docCells, isTemplate,
         });
         result = data;
       }
@@ -69,8 +77,8 @@ export const createDiagramSlice = (set, get) => ({
     try {
       const { data } = await axios.get(`/api/diagrams/${id}`);
       set({
-        nodes: data.nodes || [],
-        edges: data.edges || [],
+        nodes: (data.nodes || []).map(stripSelected),
+        edges: (data.edges || []).map(stripSelected),
         docCells: normalizeDocCells(data.docCells),
         activeCellId: null,
         currentDiagramId: data.id,
@@ -109,7 +117,7 @@ export const createDiagramSlice = (set, get) => ({
     _autosaveInFlight = true;
     try {
       await axios.put(`/api/diagrams/${currentDiagramId}`, {
-        name: currentDiagramName, nodes, edges, docCells,
+        name: currentDiagramName, nodes: nodes.map(stripSelected), edges: edges.map(stripSelected), docCells,
       });
       // Only clear isDirty if nothing changed again while the request was
       // in flight — otherwise we'd silently drop that newer edit.

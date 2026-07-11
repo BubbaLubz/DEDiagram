@@ -137,26 +137,27 @@ export const createCanvasSlice = (set, get) => ({
     });
   },
 
-  // Confirmation gate in front of loadTemplate — it replaces the whole
-  // canvas, so anything already on it (sidebar templates, AI generation,
-  // JSON import) routes through here instead of calling loadTemplate
-  // directly. Skipped when there's nothing to lose.
+  // Confirmation gate in front of anything that replaces the whole canvas
+  // (sidebar templates, AI generation, JSON import, loading a saved
+  // diagram) — callers pass a label for the popup and the action to run if
+  // the user confirms. Skipped entirely when there's nothing on the canvas
+  // to lose.
   isConfirmClearOpen: false,
-  pendingTemplate: null,
+  pendingClearAction: null, // { label, run }
 
-  requestLoadTemplate: (template) => {
+  requestCanvasReplace: (label, run) => {
     if (get().nodes.length === 0) {
-      get().loadTemplate(template);
+      run();
       return;
     }
-    set({ pendingTemplate: template, isConfirmClearOpen: true });
+    set({ pendingClearAction: { label, run }, isConfirmClearOpen: true });
   },
 
-  confirmLoadTemplate: () => {
-    const { pendingTemplate } = get();
-    set({ isConfirmClearOpen: false, pendingTemplate: null });
-    if (pendingTemplate) get().loadTemplate(pendingTemplate);
+  confirmCanvasReplace: () => {
+    const { pendingClearAction } = get();
+    set({ isConfirmClearOpen: false, pendingClearAction: null });
+    if (pendingClearAction) pendingClearAction.run();
   },
 
-  cancelLoadTemplate: () => set({ isConfirmClearOpen: false, pendingTemplate: null }),
+  cancelCanvasReplace: () => set({ isConfirmClearOpen: false, pendingClearAction: null }),
 });

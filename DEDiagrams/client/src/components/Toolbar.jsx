@@ -26,7 +26,7 @@ export default function Toolbar() {
     openSaveModal, openLoadModal,
     selectedNode, edges, updateEdgeData, nodes, deleteSelected,
     openGenerateModal, toggleCostPanel, isCostPanelOpen,
-    requestLoadTemplate,
+    requestCanvasReplace, loadTemplate,
     isDrawingMode, toggleDrawingMode, drawTool, setDrawTool, penColor, setPenColor,
     penWidth, setPenWidth, eraserSize, setEraserSize, undoLastStroke, clearDrawing, drawingStrokes,
     openAccountSettings, openShareModal, currentDiagramId,
@@ -62,7 +62,8 @@ export default function Toolbar() {
       try {
         const data = JSON.parse(ev.target.result);
         if (!Array.isArray(data.nodes)) throw new Error('Missing nodes array');
-        requestLoadTemplate({ name: data.name || file.name.replace(/\.json$/i, ''), nodes: data.nodes, edges: data.edges || [], docCells: data.docCells || [] });
+        const name = data.name || file.name.replace(/\.json$/i, '');
+        requestCanvasReplace(name, () => loadTemplate({ name, nodes: data.nodes, edges: data.edges || [], docCells: data.docCells || [] }));
       } catch {
         alert('Could not import: file is not a valid diagram JSON.');
       }

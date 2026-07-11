@@ -6,7 +6,7 @@ const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 export default function ConfirmClearModal() {
-  const { isConfirmClearOpen, pendingTemplate, confirmLoadTemplate, cancelLoadTemplate } = useStore();
+  const { isConfirmClearOpen, pendingClearAction, confirmCanvasReplace, cancelCanvasReplace } = useStore();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function ConfirmClearModal() {
         opacity: reduced ? 1 : (visible ? 1 : 0),
         transition: reduced ? 'none' : `opacity 200ms ${ease}`,
       }}
-      onClick={cancelLoadTemplate}
+      onClick={cancelCanvasReplace}
     >
       <div
         role="alertdialog"
@@ -58,21 +58,21 @@ export default function ConfirmClearModal() {
               Replace current canvas?
             </h2>
             <p className="text-xs mt-1 leading-relaxed" style={{ color: '#9C8F7C' }}>
-              Loading "{pendingTemplate?.name || 'this template'}" will clear everything currently on the
+              Loading "{pendingClearAction?.label || 'this'}" will clear everything currently on the
               canvas{'—'}including for anyone else viewing this diagram live.
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3 px-5 pb-5">
           <button
-            onClick={cancelLoadTemplate}
+            onClick={cancelCanvasReplace}
             className="flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
             style={{ border: '1px solid #453B2F', color: '#C7BCA9' }}
           >
             Cancel
           </button>
           <button
-            onClick={confirmLoadTemplate}
+            onClick={confirmCanvasReplace}
             className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
             style={{ background: '#E3A854', color: '#241F19' }}
           >
