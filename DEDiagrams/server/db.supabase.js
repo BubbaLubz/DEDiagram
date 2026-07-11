@@ -131,6 +131,42 @@ const db = {
     if (error && error.code !== '23505') throw error; // ignore unique violations
   },
 
+  // Passport identity — replaces the old local users.json file, which
+  // doesn't survive a restart on an ephemeral filesystem (Render free tier).
+  async getUserById(id) {
+    const supabase = getSupabase();
+    const { data, error } = await supabase.from('users').select('*').eq('id', id).single();
+    if (error) return null;
+    return data;
+  },
+
+  async findUserByOAuthId(field, value) {
+    const supabase = getSupabase();
+    const { data, error } = await supabase.from('users').select('*').eq(field, value).maybeSingle();
+    if (error) return null;
+    return data;
+  },
+
+  async createUser({ id, email, displayName, avatarUrl, githubId, googleId }) {
+    const supabase = getSupabase();
+    const { data, error } = await supabase.from('users').insert({
+      id, email: email || '', display_name: displayName || '', avatar_url: avatarUrl || null,
+      github_id: githubId || null, google_id: googleId || null,
+    }).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  // Backfills an OAuth id onto an existing row found by email — handles a
+  // pre-existing user's first login after migrating identity into Supabase,
+  // so it links to their old account/diagrams instead of creating a duplicate.
+  async linkOAuthId(userId, field, value) {
+    const supabase = getSupabase();
+    const { data, error } = await supabase.from('users').update({ [field]: value }).eq('id', userId).select().single();
+    if (error) throw error;
+    return data;
+  },
+
   // Comments
   async getComments(diagramId, nodeId) {
     const supabase = getSupabase();

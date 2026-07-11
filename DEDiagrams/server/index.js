@@ -1,7 +1,6 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const Anthropic = require('@anthropic-ai/sdk');
@@ -25,8 +24,6 @@ const COMPONENT_TYPE_LIST = Object.entries(byCategory)
 const app = express();
 const PORT = process.env.PORT || 3001; // Render (and most PaaS hosts) assign the port via this env var
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
-const DATA_DIR = path.join(__dirname, 'data');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
 // Deployed behind a reverse proxy (Render/Railway/Fly/etc. all add one).
 // Without this, req.ip resolves to the proxy's own IP for every request,
@@ -39,14 +36,11 @@ app.set('trust proxy', process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY)
 app.use(cors({ origin: CLIENT_URL, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 
-// ─── Users (flat JSON, swap for a real DB later) ────────────────────────────
-
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, JSON.stringify([]));
-const readUsers = () => { try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); } catch { return []; } };
-const writeUsers = (u) => fs.writeFileSync(USERS_FILE, JSON.stringify(u, null, 2));
-
 // ─── Session + Passport ─────────────────────────────────────────────────────
+// User identity lives in Supabase (db.supabase.js), not a local file — a
+// local users.json doesn't survive a restart on hosts with an ephemeral
+// filesystem (e.g. Render's free tier), which would otherwise silently
+// create a fresh account for every returning user and orphan their diagrams.
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'dev-secret-change-before-deploying',
@@ -63,11 +57,45 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Maps a Supabase users row to the shape the rest of the app expects
+// (req.user.name/.avatar/.username).
+function toAppUser(row) {
+  return {
+    id: row.id,
+    name: row.display_name || 'Unknown',
+    username: row.email ? row.email.split('@')[0] : row.id,
+    avatar: row.avatar_url || null,
+  };
+}
+
 passport.serializeUser((user, done) => done(null, user.id));
-passport.deserializeUser((id, done) => {
-  const user = readUsers().find(u => u.id === id);
-  done(null, user || false);
+passport.deserializeUser(async (id, done) => {
+  try {
+    const row = await db.getUserById(id);
+    done(null, row ? toAppUser(row) : false);
+  } catch (err) {
+    done(err);
+  }
 });
+
+// Finds a user by OAuth id; if not found, tries a fallback match by email
+// and backfills the OAuth id onto that row (handles an existing user's first
+// login after this migration, linking to their old account/diagrams instead
+// of creating a duplicate); otherwise creates a fresh row.
+async function findOrCreateOAuthUser({ oauthField, oauthId, email, displayName, avatarUrl }) {
+  let row = await db.findUserByOAuthId(oauthField, oauthId);
+  if (!row && email) {
+    const byEmail = await db.findUserByOAuthId('email', email);
+    if (byEmail) row = await db.linkOAuthId(byEmail.id, oauthField, oauthId);
+  }
+  if (!row) {
+    row = await db.createUser({
+      id: uuidv4(), email, displayName, avatarUrl,
+      [oauthField === 'github_id' ? 'githubId' : 'googleId']: oauthId,
+    });
+  }
+  return row;
+}
 
 if (process.env.GITHUB_CLIENT_ID) {
   passport.use(new GitHubStrategy({
@@ -75,28 +103,17 @@ if (process.env.GITHUB_CLIENT_ID) {
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
     callbackURL: `${process.env.SERVER_URL || 'http://localhost:3001'}/auth/github/callback`,
   }, async (_accessToken, _refreshToken, profile, done) => {
-    const users = readUsers();
-    let user = users.find(u => u.githubId === profile.id);
-    if (!user) {
-      user = {
-        id: uuidv4(),
-        githubId: profile.id,
-        name: profile.displayName || profile.username,
-        username: profile.username,
-        avatar: profile.photos?.[0]?.value || null,
-        createdAt: new Date().toISOString(),
-      };
-      users.push(user);
-      writeUsers(users);
-    }
     try {
-      await db.upsertUser({
-        id: user.id, email: profile.emails?.[0]?.value, displayName: user.name, avatarUrl: user.avatar,
+      const row = await findOrCreateOAuthUser({
+        oauthField: 'github_id', oauthId: String(profile.id),
+        email: profile.emails?.[0]?.value, displayName: profile.displayName || profile.username,
+        avatarUrl: profile.photos?.[0]?.value || null,
       });
+      done(null, toAppUser(row));
     } catch (err) {
-      console.error('Failed to mirror GitHub user into Supabase:', err.message);
+      console.error('GitHub auth error:', err.message);
+      done(err);
     }
-    return done(null, user);
   }));
 } else {
   console.warn('⚠️  GITHUB_CLIENT_ID not set — GitHub OAuth will not work');
@@ -108,28 +125,17 @@ if (process.env.GOOGLE_CLIENT_ID) {
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: `${process.env.SERVER_URL || 'http://localhost:3001'}/auth/google/callback`,
   }, async (_accessToken, _refreshToken, profile, done) => {
-    const users = readUsers();
-    let user = users.find(u => u.googleId === profile.id);
-    if (!user) {
-      user = {
-        id: uuidv4(),
-        googleId: profile.id,
-        name: profile.displayName,
-        username: profile.emails?.[0]?.value?.split('@')[0] || profile.id,
-        avatar: profile.photos?.[0]?.value || null,
-        createdAt: new Date().toISOString(),
-      };
-      users.push(user);
-      writeUsers(users);
-    }
     try {
-      await db.upsertUser({
-        id: user.id, email: profile.emails?.[0]?.value, displayName: user.name, avatarUrl: user.avatar,
+      const row = await findOrCreateOAuthUser({
+        oauthField: 'google_id', oauthId: String(profile.id),
+        email: profile.emails?.[0]?.value, displayName: profile.displayName,
+        avatarUrl: profile.photos?.[0]?.value || null,
       });
+      done(null, toAppUser(row));
     } catch (err) {
-      console.error('Failed to mirror Google user into Supabase:', err.message);
+      console.error('Google auth error:', err.message);
+      done(err);
     }
-    return done(null, user);
   }));
 } else {
   console.warn('⚠️  GOOGLE_CLIENT_ID not set — Google OAuth will not work');
@@ -176,8 +182,6 @@ const aiDailyCap = (req, res, next) => {
 if (!process.env.ANTHROPIC_API_KEY) {
   console.warn('⚠️  ANTHROPIC_API_KEY is not set — AI generation will fail');
 }
-
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 // Pulls the first complete {...} block out of a string, ignoring any
 // preamble text, markdown fences, or trailing commentary from the model.
