@@ -128,13 +128,13 @@ function ComponentsTab() {
 
 function TemplatesTab() {
   const P = useTheme();
-  const { loadTemplate } = useStore();
+  const { requestLoadTemplate } = useStore();
 
   return (
     <div style={{ overflowY: 'auto', flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <p style={{ fontSize: 11, color: P.faint, padding: '0 4px 4px' }}>Click to load a starter architecture</p>
       {BUILT_IN_TEMPLATES.map(tpl => (
-        <TemplateCard key={tpl.id} tpl={tpl} onLoad={() => loadTemplate(tpl)}/>
+        <TemplateCard key={tpl.id} tpl={tpl} onLoad={() => requestLoadTemplate(tpl)}/>
       ))}
     </div>
   );

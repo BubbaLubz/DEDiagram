@@ -11,6 +11,7 @@ import SaveModal from './components/modals/SaveModal';
 import GenerateModal from './components/modals/GenerateModal';
 import AccountSettingsModal from './components/modals/AccountSettingsModal';
 import ShareModal from './components/modals/ShareModal';
+import ConfirmClearModal from './components/modals/ConfirmClearModal';
 import useYjsSync from './collab/useYjsSync';
 import useStore from './store';
 import { useTheme } from './theme';
@@ -65,6 +66,7 @@ export default function App() {
         <DocPanel/>
         <SaveModal/>
         <GenerateModal/>
+        <ConfirmClearModal/>
         <AccountSettingsModal/>
         <ShareModal/>
       </ReactFlowProvider>

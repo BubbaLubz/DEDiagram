@@ -137,6 +137,29 @@ export const createCanvasSlice = (set, get) => ({
     });
   },
 
+  // Confirmation gate in front of loadTemplate — it replaces the whole
+  // canvas, so anything already on it (sidebar templates, AI generation,
+  // JSON import) routes through here instead of calling loadTemplate
+  // directly. Skipped when there's nothing to lose.
+  isConfirmClearOpen: false,
+  pendingTemplate: null,
+
+  requestLoadTemplate: (template) => {
+    if (get().nodes.length === 0) {
+      get().loadTemplate(template);
+      return;
+    }
+    set({ pendingTemplate: template, isConfirmClearOpen: true });
+  },
+
+  confirmLoadTemplate: () => {
+    const { pendingTemplate } = get();
+    set({ isConfirmClearOpen: false, pendingTemplate: null });
+    if (pendingTemplate) get().loadTemplate(pendingTemplate);
+  },
+
+  cancelLoadTemplate: () => set({ isConfirmClearOpen: false, pendingTemplate: null }),
+
   clearCanvas: () => {
     set({
       nodes: [],
