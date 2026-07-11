@@ -23,7 +23,13 @@ const COMPONENT_TYPE_LIST = Object.entries(byCategory)
 
 const app = express();
 const PORT = process.env.PORT || 3001; // Render (and most PaaS hosts) assign the port via this env var
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+// Trailing slash stripped defensively — a CLIENT_URL/SERVER_URL entered with
+// one (e.g. "https://dediagram.onrender.com/") would otherwise produce a
+// double slash when a path is appended (e.g. the OAuth callbackURL below),
+// which GitHub/Google reject as not matching the registered redirect_uri.
+const stripTrailingSlash = (url) => url.replace(/\/+$/, '');
+const CLIENT_URL = stripTrailingSlash(process.env.CLIENT_URL || 'http://localhost:3000');
+const SERVER_URL = stripTrailingSlash(process.env.SERVER_URL || 'http://localhost:3001');
 
 // Deployed behind a reverse proxy (Render/Railway/Fly/etc. all add one).
 // Without this, req.ip resolves to the proxy's own IP for every request,
@@ -101,7 +107,7 @@ if (process.env.GITHUB_CLIENT_ID) {
   passport.use(new GitHubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: `${process.env.SERVER_URL || 'http://localhost:3001'}/auth/github/callback`,
+    callbackURL: `${SERVER_URL}/auth/github/callback`,
   }, async (_accessToken, _refreshToken, profile, done) => {
     try {
       const row = await findOrCreateOAuthUser({
@@ -123,7 +129,7 @@ if (process.env.GOOGLE_CLIENT_ID) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${process.env.SERVER_URL || 'http://localhost:3001'}/auth/google/callback`,
+    callbackURL: `${SERVER_URL}/auth/google/callback`,
   }, async (_accessToken, _refreshToken, profile, done) => {
     try {
       const row = await findOrCreateOAuthUser({
