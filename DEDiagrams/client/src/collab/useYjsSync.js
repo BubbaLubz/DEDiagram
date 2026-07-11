@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useRoom } from '@liveblocks/react';
 import { getYjsProviderForRoom } from '@liveblocks/yjs';
 import useStore from '../store';
+import { stripSelected, nodeContentEqual, edgeContentEqual } from './yjsSyncUtils';
 
 // Bridges the existing Zustand state with a shared Yjs doc, so multiple
 // browsers editing the same diagram converge on the same state. Deliberately
@@ -14,6 +15,14 @@ import useStore from '../store';
 // — so it's kept in a Y.Array instead, which preserves order across peers;
 // a Y.Map's iteration order isn't guaranteed and would risk cells silently
 // reshuffling between users.
+//
+// node/edge `.selected` is deliberately never written to Yjs. It's
+// ReactFlow's per-browser selection flag, not shared document content —
+// syncing it meant one user clicking empty canvas (which makes ReactFlow
+// deselect everything in the *shared* nodes array) broadcast that
+// deselection to everyone, wiping other users' highlighted selections.
+// Selection stays purely local; cross-user selection *awareness* is a
+// separate concern already handled via Presence (see SelectionPresenceProvider).
 export default function useYjsSync() {
   const room = useRoom();
 
@@ -35,8 +44,15 @@ export default function useYjsSync() {
     let lastName = null;
 
     const applyRemoteState = () => {
-      const nodes = Array.from(yNodes.values());
-      const edges = Array.from(yEdges.values());
+      // Re-attach each node/edge's *current local* selected flag — it was
+      // never part of what's in Yjs (see stripSelected above), so a remote
+      // update must not silently unselect whatever the local user has
+      // selected right now.
+      const localNodesById = new Map(useStore.getState().nodes.map(n => [n.id, n]));
+      const localEdgesById = new Map(useStore.getState().edges.map(e => [e.id, e]));
+
+      const nodes = Array.from(yNodes.values()).map(n => ({ ...n, selected: localNodesById.get(n.id)?.selected ?? false }));
+      const edges = Array.from(yEdges.values()).map(e => ({ ...e, selected: localEdgesById.get(e.id)?.selected ?? false }));
       const docCells = yDocCells.toArray();
       const name = yMeta.get('name');
       lastNodes = new Map(nodes.map(n => [n.id, n]));
@@ -57,8 +73,8 @@ export default function useYjsSync() {
       if (yNodes.size === 0 && yEdges.size === 0 && yDocCells.length === 0 && !yMeta.has('name')) {
         const { nodes, edges, docCells, currentDiagramName } = useStore.getState();
         yDoc.transact(() => {
-          nodes.forEach(n => yNodes.set(n.id, n));
-          edges.forEach(e => yEdges.set(e.id, e));
+          nodes.forEach(n => yNodes.set(n.id, stripSelected(n)));
+          edges.forEach(e => yEdges.set(e.id, stripSelected(e)));
           yDocCells.insert(0, docCells);
           yMeta.set('name', currentDiagramName);
         }, 'init');
@@ -101,7 +117,8 @@ export default function useYjsSync() {
       const changedNodes = [];
       nodes.forEach(n => {
         nextNodes.set(n.id, n);
-        if (lastNodes.get(n.id) !== n) changedNodes.push(n);
+        const prev = lastNodes.get(n.id);
+        if (!prev || !nodeContentEqual(prev, n)) changedNodes.push(n);
       });
       const removedNodeIds = [...lastNodes.keys()].filter(id => !nextNodes.has(id));
 
@@ -109,7 +126,8 @@ export default function useYjsSync() {
       const changedEdges = [];
       edges.forEach(e => {
         nextEdges.set(e.id, e);
-        if (lastEdges.get(e.id) !== e) changedEdges.push(e);
+        const prev = lastEdges.get(e.id);
+        if (!prev || !edgeContentEqual(prev, e)) changedEdges.push(e);
       });
       const removedEdgeIds = [...lastEdges.keys()].filter(id => !nextEdges.has(id));
 
@@ -128,9 +146,9 @@ export default function useYjsSync() {
 
       if (changedNodes.length || removedNodeIds.length || changedEdges.length || removedEdgeIds.length || docCellsChanged || nameChanged) {
         yDoc.transact(() => {
-          changedNodes.forEach(n => yNodes.set(n.id, n));
+          changedNodes.forEach(n => yNodes.set(n.id, stripSelected(n)));
           removedNodeIds.forEach(id => yNodes.delete(id));
-          changedEdges.forEach(e => yEdges.set(e.id, e));
+          changedEdges.forEach(e => yEdges.set(e.id, stripSelected(e)));
           removedEdgeIds.forEach(id => yEdges.delete(id));
           if (docCellsChanged) {
             if (endOld > start) yDocCells.delete(start, endOld - start);
