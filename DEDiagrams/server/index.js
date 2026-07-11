@@ -99,6 +99,10 @@ async function findOrCreateOAuthUser({ oauthField, oauthId, email, displayName, 
       id: uuidv4(), email, displayName, avatarUrl,
       [oauthField === 'github_id' ? 'githubId' : 'googleId']: oauthId,
     });
+  } else {
+    // Refresh profile fields on every login (keeps them current, and
+    // self-heals rows blanked by a since-removed bug in createDiagram).
+    row = await db.upsertUser({ id: row.id, email, displayName, avatarUrl });
   }
   return row;
 }

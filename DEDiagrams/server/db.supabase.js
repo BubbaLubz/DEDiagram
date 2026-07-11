@@ -62,8 +62,9 @@ const db = {
 
   async createDiagram({ name, description, nodes, edges, docCells, isTemplate, ownerId }) {
     const supabase = getSupabase();
-    // Ensure user exists
-    await db.upsertUser({ id: ownerId });
+    // The owner's user row is guaranteed to already exist — every route that
+    // reaches here requires an authenticated session, and login always
+    // creates/finds the row first (see findOrCreateOAuthUser in index.js).
     const { data: diagram, error } = await supabase
       .from('diagrams')
       .insert({ name, description: description || '', nodes, edges: edges || [],
@@ -122,13 +123,20 @@ const db = {
     return data;
   },
 
+  // Only patches the fields actually provided — never overwrites existing
+  // profile data with blanks (e.g. a provider that omits email on a later
+  // login shouldn't erase the email captured on an earlier one).
   async upsertUser({ id, email, displayName, avatarUrl }) {
     const supabase = getSupabase();
-    const { error } = await supabase.from('users').upsert(
-      { id, email: email || '', display_name: displayName || '', avatar_url: avatarUrl || null },
-      { onConflict: 'id', ignoreDuplicates: false }
-    );
-    if (error && error.code !== '23505') throw error; // ignore unique violations
+    const patch = { id };
+    if (email) patch.email = email;
+    if (displayName) patch.display_name = displayName;
+    if (avatarUrl) patch.avatar_url = avatarUrl;
+    const { data, error } = await supabase.from('users')
+      .upsert(patch, { onConflict: 'id', ignoreDuplicates: false })
+      .select().single();
+    if (error) throw error;
+    return data;
   },
 
   // Passport identity — replaces the old local users.json file, which
