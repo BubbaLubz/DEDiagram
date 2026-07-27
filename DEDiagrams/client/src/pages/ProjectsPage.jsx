@@ -152,7 +152,10 @@ export default function ProjectsPage() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '16px 32px', borderBottom: `1px solid ${P.divider}`,
       }}>
-        <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: P.text }}>
+        <span
+          onClick={() => navigate('/')}
+          style={{ fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: P.text, cursor: 'pointer' }}
+        >
           <span style={{ color: P.amber }}>DE</span>Diagram
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -43,13 +43,8 @@ const FEATURES = [
 ];
 
 export default function LandingPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
-
-  // If already authenticated, skip the landing page
-  useEffect(() => {
-    if (!loading && user) navigate('/projects');
-  }, [user, loading, navigate]);
 
   return (
     <div
@@ -65,18 +60,38 @@ export default function LandingPage() {
         <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
           <span style={{ color: C.amber }}>DE</span>Diagram
         </span>
-        <a
-          href="/auth/github"
-          style={{
-            fontSize: 13, color: C.muted, textDecoration: 'none',
-            display: 'flex', alignItems: 'center', gap: 6,
-            transition: 'color 0.15s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.color = C.text}
-          onMouseLeave={e => e.currentTarget.style.color = C.muted}
-        >
-          Sign in <span style={{ fontSize: 11 }}>→</span>
-        </a>
+        {!loading && user ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ fontSize: 13, color: C.muted }}>
+              Signed in as <span style={{ color: C.text, fontWeight: 500 }}>{user.name || user.username}</span>
+            </span>
+            <button
+              onClick={logout}
+              style={{
+                fontSize: 13, color: C.muted, background: 'none', border: 'none',
+                cursor: 'pointer', padding: 0, fontFamily: 'inherit',
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = C.text}
+              onMouseLeave={e => e.currentTarget.style.color = C.muted}
+            >
+              Sign out
+            </button>
+          </div>
+        ) : !loading ? (
+          <a
+            href="/auth/github"
+            style={{
+              fontSize: 13, color: C.muted, textDecoration: 'none',
+              display: 'flex', alignItems: 'center', gap: 6,
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = C.text}
+            onMouseLeave={e => e.currentTarget.style.color = C.muted}
+          >
+            Sign in <span style={{ fontSize: 11 }}>→</span>
+          </a>
+        ) : null}
       </nav>
 
       {/* ── Hero ── */}
@@ -138,8 +153,14 @@ export default function LandingPage() {
 
           {/* CTA */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
-            <GithubButton />
-            <GoogleButton />
+            {!loading && user ? (
+              <ProjectsButton onClick={() => navigate('/projects')} />
+            ) : (
+              <>
+                <GithubButton />
+                <GoogleButton />
+              </>
+            )}
             <p style={{ fontSize: 12, color: C.faint, marginTop: 2 }}>
               Free to use during beta.
             </p>
@@ -204,6 +225,31 @@ export default function LandingPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+function ProjectsButton({ onClick }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        padding: '12px 24px',
+        background: hover ? C.ctaHover : C.cta,
+        color: '#F7F2E7',
+        border: 'none',
+        fontSize: 14, fontWeight: 500,
+        transition: 'background 0.15s',
+        cursor: 'pointer',
+        width: 240, boxSizing: 'border-box',
+        fontFamily: 'inherit',
+      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      Go to Your Projects <span style={{ fontSize: 13 }}>→</span>
+    </button>
   );
 }
 
