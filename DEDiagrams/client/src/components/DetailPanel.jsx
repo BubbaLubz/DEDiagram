@@ -232,6 +232,133 @@ function CustomBoxEditor({ nodeId, initialLabel, initialNotes, initialIcon }) {
   );
 }
 
+function NodeEditor({ nodeId, initialNotes, component, category, P }) {
+  const updateNodeData = useStore(s => s.updateNodeData);
+  const [notes, setNotes] = useState(initialNotes || '');
+  const [toolInfoOpen, setToolInfoOpen] = useState(false);
+
+  const sectionLabel = (label) => (
+    <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: P.muted, marginBottom: 8 }}>
+      {label}
+    </p>
+  );
+
+  const inputStyle = {
+    width: '100%', padding: '8px 12px', fontSize: 13, color: P.text,
+    background: P.input, border: `1px solid ${P.divider}`, borderRadius: 4,
+    outline: 'none', transition: 'border-color 0.15s',
+    fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+    boxSizing: 'border-box',
+  };
+
+  return (
+    <>
+      {/* User description */}
+      <div>
+        {sectionLabel('Description')}
+        <textarea
+          value={notes}
+          onChange={(e) => { setNotes(e.target.value); updateNodeData(nodeId, { notes: e.target.value }); }}
+          rows={4}
+          style={{ ...inputStyle, resize: 'none', lineHeight: 1.6 }}
+          placeholder="Describe this component's role in your pipeline…"
+          onFocus={e => { e.target.style.borderColor = P.amber; }}
+          onBlur={e => { e.target.style.borderColor = P.divider; }}
+        />
+      </div>
+
+      {/* Collapsible tool info */}
+      <div style={{ borderRadius: 4, border: `1px solid ${P.divider}`, overflow: 'hidden' }}>
+        <button
+          onClick={() => setToolInfoOpen(o => !o)}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            width: '100%', padding: '10px 12px', background: P.surface,
+            border: 'none', cursor: 'pointer', color: P.muted, fontSize: 12, fontWeight: 600,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = P.card; }}
+          onMouseLeave={e => { e.currentTarget.style.background = P.surface; }}
+        >
+          <span>About {component.label}</span>
+          <ChevronRight
+            size={13}
+            style={{ transition: 'transform 0.15s', transform: toolInfoOpen ? 'rotate(90deg)' : 'rotate(0deg)', color: P.faint }}
+          />
+        </button>
+
+        {toolInfoOpen && (
+          <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 20, borderTop: `1px solid ${P.divider}` }}>
+            {/* Tagline + Description */}
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: category.color || P.amber, marginBottom: 6 }}>
+                {component.tagline}
+              </p>
+              <p style={{ fontSize: 13, color: P.muted, lineHeight: 1.65 }}>{component.description}</p>
+            </div>
+
+            {/* Internal architecture */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <Cpu size={12} style={{ color: P.muted }}/>
+                {sectionLabel('Internal Architecture')}
+              </div>
+              <div style={{ borderRadius: 4, overflow: 'hidden', border: `1px solid ${P.divider}` }}>
+                <InternalDiagram component={component}/>
+              </div>
+              {component.internalDesc && (
+                <p style={{ fontSize: 12, color: P.muted, marginTop: 8, lineHeight: 1.6 }}>{component.internalDesc}</p>
+              )}
+            </div>
+
+            {/* Capabilities */}
+            {component.capabilities?.length > 0 && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <Zap size={12} style={{ color: P.muted }}/>
+                  {sectionLabel('Key Capabilities')}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {component.capabilities.map((cap, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: P.text }}>
+                      <ChevronRight size={12} style={{ color: category.color || P.amber, flexShrink: 0, marginTop: 2 }}/>
+                      <span style={{ lineHeight: 1.5 }}>{cap}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Config */}
+            {component.config?.length > 0 && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <Settings size={12} style={{ color: P.muted }}/>
+                  {sectionLabel('Key Config')}
+                </div>
+                <div style={{ borderRadius: 4, overflow: 'hidden', border: `1px solid ${P.divider}` }}>
+                  {component.config.map((cfg, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        padding: '6px 12px', fontFamily: 'monospace', fontSize: 12,
+                        color: P.amber,
+                        background: i % 2 === 0 ? P.surface : P.card,
+                        borderBottom: i < component.config.length - 1 ? `1px solid ${P.divider}` : 'none',
+                      }}
+                    >
+                      {cfg}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 export default function DetailPanel() {
   const P = useTheme();
   const { selectedNode, closeDetail, nodes, edges } = useStore();
@@ -307,78 +434,14 @@ export default function DetailPanel() {
             initialIcon={selectedNode.data?.iconEmoji}
           />
         ) : (
-          <>
-            {/* Tagline + Description */}
-            <div>
-              <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: category.color || P.amber, marginBottom: 6 }}>
-                {component.tagline}
-              </p>
-              <p style={{ fontSize: 13, color: P.muted, lineHeight: 1.65 }}>{component.description}</p>
-              {selectedNode.data?.notes && (
-                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 4, background: P.card, border: `1px solid ${P.divider}` }}>
-                  <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: P.muted, marginBottom: 4 }}>Pipeline Notes</p>
-                  <p style={{ fontSize: 13, color: P.text, lineHeight: 1.6 }}>{selectedNode.data.notes}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Internal architecture */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <Cpu size={12} style={{ color: P.muted }}/>
-                {sectionLabel('Internal Architecture')}
-              </div>
-              <div style={{ borderRadius: 4, overflow: 'hidden', border: `1px solid ${P.divider}` }}>
-                <InternalDiagram component={component}/>
-              </div>
-              {component.internalDesc && (
-                <p style={{ fontSize: 12, color: P.muted, marginTop: 8, lineHeight: 1.6 }}>{component.internalDesc}</p>
-              )}
-            </div>
-
-            {/* Capabilities */}
-            {component.capabilities?.length > 0 && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <Zap size={12} style={{ color: P.muted }}/>
-                  {sectionLabel('Key Capabilities')}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {component.capabilities.map((cap, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: P.text }}>
-                      <ChevronRight size={12} style={{ color: category.color || P.amber, flexShrink: 0, marginTop: 2 }}/>
-                      <span style={{ lineHeight: 1.5 }}>{cap}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Config */}
-            {component.config?.length > 0 && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <Settings size={12} style={{ color: P.muted }}/>
-                  {sectionLabel('Key Config')}
-                </div>
-                <div style={{ borderRadius: 4, overflow: 'hidden', border: `1px solid ${P.divider}` }}>
-                  {component.config.map((cfg, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        padding: '6px 12px', fontFamily: 'monospace', fontSize: 12,
-                        color: P.amber,
-                        background: i % 2 === 0 ? P.surface : P.card,
-                        borderBottom: i < component.config.length - 1 ? `1px solid ${P.divider}` : 'none',
-                      }}
-                    >
-                      {cfg}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+          <NodeEditor
+            key={selectedNode.id}
+            nodeId={selectedNode.id}
+            initialNotes={selectedNode.data?.notes}
+            component={component}
+            category={category}
+            P={P}
+          />
         )}
 
         {/* Pipeline connections */}
