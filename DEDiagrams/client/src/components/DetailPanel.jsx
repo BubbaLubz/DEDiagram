@@ -268,13 +268,14 @@ function NodeEditor({ nodeId, initialNotes, component, category, P }) {
       </div>
 
       {/* Collapsible tool info */}
-      <div style={{ borderRadius: 4, border: `1px solid ${P.divider}`, overflow: 'hidden' }}>
+      <div style={{ borderRadius: 4, border: `1px solid ${P.divider}` }}>
         <button
           onClick={() => setToolInfoOpen(o => !o)}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             width: '100%', padding: '10px 12px', background: P.surface,
             border: 'none', cursor: 'pointer', color: P.muted, fontSize: 12, fontWeight: 600,
+            borderRadius: toolInfoOpen ? '4px 4px 0 0' : 4,
           }}
           onMouseEnter={e => { e.currentTarget.style.background = P.card; }}
           onMouseLeave={e => { e.currentTarget.style.background = P.surface; }}
