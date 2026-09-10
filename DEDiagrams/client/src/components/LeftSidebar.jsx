@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, Layout, BookOpen, Trash2, FolderOpen, Clock } from 'lucide-react';
+import { Package, Layout, BookOpen, Trash2, FolderOpen, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getComponentsByCategory } from '../data/componentLibrary';
 import { BUILT_IN_TEMPLATES } from '../data/templates';
 import useStore from '../store';
@@ -317,14 +317,39 @@ function SidebarTabButton({ id, label, Icon, activeTab, setActiveTab, P }) {
 export default function LeftSidebar() {
   const P = useTheme();
   const { activeTab, setActiveTab } = useStore();
+  const [collapsed, setCollapsed] = useState(false);
+
+  const toggleBtn = (onClick, icon) => (
+    <button
+      onClick={onClick}
+      style={{
+        padding: 5, borderRadius: 4, border: 'none', background: 'none',
+        cursor: 'pointer', color: P.faint, flexShrink: 0, display: 'flex', alignItems: 'center',
+        transition: 'color 0.12s',
+      }}
+      onMouseEnter={e => e.currentTarget.style.color = P.text}
+      onMouseLeave={e => e.currentTarget.style.color = P.faint}
+    >
+      {icon}
+    </button>
+  );
+
+  if (collapsed) {
+    return (
+      <div style={{ width: 40, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', background: P.bg, borderRight: `1px solid ${P.divider}`, flexShrink: 0, paddingTop: 10 }}>
+        {toggleBtn(() => setCollapsed(false), <ChevronRight size={15}/>)}
+      </div>
+    );
+  }
 
   return (
     <div style={{ width: 280, height: '100%', display: 'flex', flexDirection: 'column', background: P.bg, borderRight: `1px solid ${P.divider}`, flexShrink: 0 }}>
-      {/* Logo */}
-      <div style={{ padding: '10px 16px', borderBottom: `1px solid ${P.divider}`, flexShrink: 0 }}>
+      {/* Logo + collapse */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: `1px solid ${P.divider}`, flexShrink: 0 }}>
         <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: P.text }}>
           <span style={{ color: P.amber }}>DE</span>Diagram
         </span>
+        {toggleBtn(() => setCollapsed(true), <ChevronLeft size={15}/>)}
       </div>
 
       {/* Tabs */}

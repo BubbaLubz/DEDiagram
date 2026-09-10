@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Cpu, Zap, Settings, ChevronRight, GitBranch } from 'lucide-react';
+import { X, Cpu, Zap, Settings, ChevronRight, ChevronLeft, GitBranch } from 'lucide-react';
 import { COMPONENTS, getCategory } from '../data/componentLibrary';
 import useStore from '../store';
 import { useTheme } from '../theme';
@@ -363,10 +363,26 @@ function NodeEditor({ nodeId, initialNotes, component, category, P }) {
 export default function DetailPanel() {
   const P = useTheme();
   const { selectedNode, closeDetail, nodes, edges } = useStore();
+  const [collapsed, setCollapsed] = useState(false);
   if (!selectedNode) return null;
 
   const component = COMPONENTS[selectedNode.data?.componentType] || {};
   const category = getCategory(component.category);
+
+  if (collapsed) {
+    return (
+      <div style={{ width: 40, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', background: P.bg, borderLeft: `1px solid ${P.divider}`, flexShrink: 0, paddingTop: 10 }}>
+        <button
+          onClick={() => setCollapsed(false)}
+          style={{ padding: 5, borderRadius: 4, border: 'none', background: 'none', cursor: 'pointer', color: P.faint, transition: 'color 0.12s' }}
+          onMouseEnter={e => e.currentTarget.style.color = P.text}
+          onMouseLeave={e => e.currentTarget.style.color = P.faint}
+        >
+          <ChevronLeft size={15}/>
+        </button>
+      </div>
+    );
+  }
 
   const inboundEdges  = edges.filter(e => e.target === selectedNode.id);
   const outboundEdges = edges.filter(e => e.source === selectedNode.id);
@@ -413,14 +429,26 @@ export default function DetailPanel() {
             </span>
           </div>
         </div>
-        <button
-          onClick={closeDetail}
-          style={{ padding: 6, borderRadius: 4, border: 'none', background: 'none', cursor: 'pointer', color: P.faint, transition: 'color 0.12s' }}
-          onMouseEnter={e => e.currentTarget.style.color = P.text}
-          onMouseLeave={e => e.currentTarget.style.color = P.faint}
-        >
-          <X size={15}/>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <button
+            onClick={() => setCollapsed(true)}
+            style={{ padding: 6, borderRadius: 4, border: 'none', background: 'none', cursor: 'pointer', color: P.faint, transition: 'color 0.12s' }}
+            onMouseEnter={e => e.currentTarget.style.color = P.text}
+            onMouseLeave={e => e.currentTarget.style.color = P.faint}
+            title="Collapse panel"
+          >
+            <ChevronRight size={15}/>
+          </button>
+          <button
+            onClick={closeDetail}
+            style={{ padding: 6, borderRadius: 4, border: 'none', background: 'none', cursor: 'pointer', color: P.faint, transition: 'color 0.12s' }}
+            onMouseEnter={e => e.currentTarget.style.color = P.text}
+            onMouseLeave={e => e.currentTarget.style.color = P.faint}
+            title="Close"
+          >
+            <X size={15}/>
+          </button>
+        </div>
       </div>
 
       {/* Scrollable body */}
