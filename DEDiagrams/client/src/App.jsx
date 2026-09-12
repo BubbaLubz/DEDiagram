@@ -12,6 +12,7 @@ import GenerateModal from './components/modals/GenerateModal';
 import AccountSettingsModal from './components/modals/AccountSettingsModal';
 import ShareModal from './components/modals/ShareModal';
 import ConfirmClearModal from './components/modals/ConfirmClearModal';
+import ErdWorkspace from './components/erd/ErdWorkspace';
 import useYjsSync from './collab/useYjsSync';
 import SelectionPresenceProvider from './collab/SelectionPresenceProvider';
 import useStore from './store';
@@ -47,6 +48,7 @@ function AppShell() {
       <ConfirmClearModal/>
       <AccountSettingsModal/>
       <ShareModal/>
+      <ErdWorkspace/>
     </ReactFlowProvider>
   );
 }

@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import * as LucideIcons from 'lucide-react';
+import { Plus, Table2, ChevronRight } from 'lucide-react';
 import { Handle, Position } from 'reactflow';
 import { COMPONENTS, getCategory } from '../../data/componentLibrary';
 import useStore from '../../store';
@@ -27,6 +28,9 @@ function ComponentNode({ id, data, selected }) {
   const [hovered, setHovered] = useState(false);
   const component = COMPONENTS[data.componentType] || {};
   const category = getCategory(component.category);
+  const openErdWorkspace = useStore(s => s.openErdWorkspace);
+  const tableCount = data.schema?.tables?.length || 0;
+  const hasSchema = tableCount > 0;
 
   // Pulses when this node is the one described by the doc panel's active cell.
   const isDocActive = useStore(s => s.docCells.find(c => c.id === s.activeCellId)?.nodeIds?.includes(id) ?? false);
@@ -81,30 +85,51 @@ function ComponentNode({ id, data, selected }) {
 
       <div className="p-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 flex-shrink-0 rounded-lg overflow-hidden shadow-md">
-            {isCustomBox ? (
-              data.iconEmoji ? (
-                <div className="w-full h-full flex items-center justify-center text-xl"
-                  style={{ background: '#2A2119' }}>
-                  {data.iconEmoji}
+          <div className="relative w-9 h-9 flex-shrink-0">
+            <div className="w-full h-full rounded-lg overflow-hidden shadow-md">
+              {isCustomBox ? (
+                data.iconEmoji ? (
+                  <div className="w-full h-full flex items-center justify-center text-xl"
+                    style={{ background: '#2A2119' }}>
+                    {data.iconEmoji}
+                  </div>
+                ) : (
+                  <CustomBoxIcon color={component.color || category.color} />
+                )
+              ) : component.logo ? (
+                <div className="w-full h-full flex items-center justify-center rounded-lg p-1.5" style={{ background: '#fff' }}>
+                  <img src={component.logo} alt={component.label} className="w-full h-full object-contain" />
+                </div>
+              ) : LucideIcon ? (
+                <div
+                  className="w-full h-full flex items-center justify-center rounded-lg"
+                  style={{ background: component.color || category.color }}
+                >
+                  <LucideIcon size={18} color="white" strokeWidth={2} />
                 </div>
               ) : (
-                <CustomBoxIcon color={component.color || category.color} />
-              )
-            ) : component.logo ? (
-              <div className="w-full h-full flex items-center justify-center rounded-lg p-1.5" style={{ background: '#fff' }}>
-                <img src={component.logo} alt={component.label} className="w-full h-full object-contain" />
-              </div>
-            ) : LucideIcon ? (
-              <div
-                className="w-full h-full flex items-center justify-center rounded-lg"
-                style={{ background: component.color || category.color }}
-              >
-                <LucideIcon size={18} color="white" strokeWidth={2} />
-              </div>
-            ) : (
-              <DefaultIcon color={component.color || category.color} iconText={component.iconText} />
-            )}
+                <DefaultIcon color={component.color || category.color} iconText={component.iconText} />
+              )}
+            </div>
+
+            {/* Schema badge — dashed "+" when no schema is attached yet, filled
+                when one is, either way opening the ERD workspace for this node. */}
+            <button
+              className="nodrag nopan"
+              onClick={(e) => { e.stopPropagation(); openErdWorkspace(id); }}
+              title={hasSchema ? `Open ERD — ${tableCount} table${tableCount === 1 ? '' : 's'}` : 'Add a schema'}
+              style={{
+                position: 'absolute', right: -6, bottom: -6, width: 20, height: 20, borderRadius: 6,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                background: hasSchema ? '#E3A854' : '#2A2119',
+                border: hasSchema ? '2px solid #2A2119' : '1.5px dashed #6E6355',
+                padding: 0,
+              }}
+            >
+              {hasSchema
+                ? <Table2 size={11} color="#1C1815" strokeWidth={2.5} />
+                : <Plus size={11} color="#9C8F7C" strokeWidth={2.5} />}
+            </button>
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate" style={{ color: '#E8DFD0' }}>{data.label || component.label}</div>
@@ -116,8 +141,25 @@ function ComponentNode({ id, data, selected }) {
           </div>
         </div>
 
+        {hasSchema && (
+          <div
+            className="nodrag nopan flex items-center justify-between mt-2 pt-2 cursor-pointer"
+            style={{ borderTop: '1px solid #4A3B2C' }}
+            onClick={(e) => { e.stopPropagation(); openErdWorkspace(id); }}
+          >
+            <div className="flex items-center gap-1.5">
+              <Table2 size={12} color="#E3A854" strokeWidth={2.5} />
+              <span className="text-xs" style={{ color: '#E8DFD0' }}>{tableCount} table{tableCount === 1 ? '' : 's'}</span>
+            </div>
+            <div className="flex items-center gap-0.5 text-xs" style={{ color: '#E3A854', fontSize: 10 }}>
+              Open ERD
+              <ChevronRight size={10} color="#E3A854" strokeWidth={2.5} />
+            </div>
+          </div>
+        )}
+
         {data.notes && (
-          <div className="mt-2 text-xs leading-relaxed line-clamp-2 pt-2" style={{ color: '#9C8F7C', borderTop: '1px solid #4A3B2C' }}>
+          <div className="mt-2 text-xs leading-relaxed line-clamp-2 pt-2" style={{ color: '#9C8F7C', borderTop: hasSchema ? 'none' : '1px solid #4A3B2C' }}>
             {data.notes}
           </div>
         )}
