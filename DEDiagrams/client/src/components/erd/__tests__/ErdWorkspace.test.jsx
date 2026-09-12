@@ -70,6 +70,27 @@ describe('ErdWorkspace', () => {
     expect(screen.getByDisplayValue('id')).toBeInTheDocument();
   });
 
+  it('gives the table card a drag handle matching the node\'s dragHandle selector, outside the editable name input', () => {
+    openWorkspace();
+    fireEvent.click(screen.getByRole('button', { name: /add table/i }));
+    const table = tableCard('new_table');
+    const handle = table.querySelector('.table-node-drag-handle');
+    expect(handle).toBeInTheDocument();
+    // The name input must NOT itself be inside the class that starts a drag —
+    // it carries its own "nodrag" so typing doesn't fight with dragging.
+    expect(screen.getByDisplayValue('new_table')).toHaveClass('nodrag');
+  });
+
+  it('persists a table\'s new position when it stops being dragged', () => {
+    openWorkspace();
+    fireEvent.click(screen.getByRole('button', { name: /add table/i }));
+    const tableId = useStore.getState().nodes[0].data.schema.tables[0].id;
+
+    useStore.getState().moveTable('pg-1', tableId, { x: 500, y: 260 });
+
+    expect(useStore.getState().nodes[0].data.schema.tables[0].position).toEqual({ x: 500, y: 260 });
+  });
+
   it('auto-detects a 1:N relationship once a column is marked as a FK, and lets the pill override it', () => {
     openWorkspace();
 

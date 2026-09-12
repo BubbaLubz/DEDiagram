@@ -20,6 +20,7 @@ function ErdWorkspaceInner({ nodeId }) {
     id: table.id,
     type: 'table',
     position: table.position,
+    dragHandle: '.table-node-drag-handle',
     data: { nodeId, table },
   })), [schema.tables, nodeId]);
 

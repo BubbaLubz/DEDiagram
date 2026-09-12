@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Trash2, Plus, KeyRound, Fingerprint } from 'lucide-react';
+import { Trash2, Plus, KeyRound, Fingerprint, GripVertical } from 'lucide-react';
 import useStore from '../../../store';
 import { isJunctionTable } from '../../../data/erd';
 import { useTheme } from '../../../theme';
@@ -124,7 +124,8 @@ function TableNode({ id, data, selected }) {
         background: '#2A2119', boxShadow: '0 2px 8px rgba(23,19,16,0.35)', overflow: 'hidden',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid #453B2F' }}>
+      <div className="table-node-drag-handle" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid #453B2F', cursor: 'grab' }}>
+        <GripVertical size={13} color="#6E6355" style={{ flexShrink: 0 }} />
         <span style={{ width: 18, height: 18, borderRadius: 4, background: '#E3A854', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1C1815" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18"/><path d="M9 3v18"/></svg>
         </span>
