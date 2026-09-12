@@ -1,5 +1,5 @@
-import { useMemo, useCallback } from 'react';
-import ReactFlow, { ReactFlowProvider, Background, BackgroundVariant, Controls, Panel } from 'reactflow';
+import { useMemo, useCallback, useState, useEffect } from 'react';
+import ReactFlow, { ReactFlowProvider, Background, BackgroundVariant, Controls, Panel, applyNodeChanges } from 'reactflow';
 import { ArrowLeft, ChevronRight, Plus } from 'lucide-react';
 import useStore from '../../store';
 import { COMPONENTS } from '../../data/componentLibrary';
@@ -16,13 +16,21 @@ function ErdWorkspaceInner({ nodeId }) {
   const schema = pipelineNode?.data?.schema || { tables: [], relationshipOverrides: {} };
   const component = COMPONENTS[pipelineNode?.data?.componentType] || {};
 
-  const flowNodes = useMemo(() => schema.tables.map(table => ({
+  const derivedNodes = useMemo(() => schema.tables.map(table => ({
     id: table.id,
     type: 'table',
     position: table.position,
     dragHandle: '.table-node-drag-handle',
     data: { nodeId, table },
   })), [schema.tables, nodeId]);
+
+  // ReactFlow only moves a node's rendered position live during a drag when
+  // it owns the node array itself (or the parent applies every intermediate
+  // change) — since schema.tables (and therefore derivedNodes) only changes
+  // once at drag END via moveTable, holding position in local state too is
+  // what makes the card actually track the cursor while dragging.
+  const [flowNodes, setFlowNodes] = useState(derivedNodes);
+  useEffect(() => { setFlowNodes(derivedNodes); }, [derivedNodes]);
 
   const relationships = useMemo(
     () => computeRelationships(schema.tables, schema.relationshipOverrides || {}),
@@ -40,6 +48,7 @@ function ErdWorkspaceInner({ nodeId }) {
   })), [relationships, nodeId]);
 
   const onNodesChange = useCallback((changes) => {
+    setFlowNodes(nds => applyNodeChanges(changes, nds));
     for (const change of changes) {
       if (change.type === 'position' && change.position && change.dragging === false) {
         moveTable(nodeId, change.id, change.position);
