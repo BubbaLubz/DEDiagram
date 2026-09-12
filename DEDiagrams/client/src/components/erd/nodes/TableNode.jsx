@@ -1,9 +1,8 @@
-import { memo, useState } from 'react';
+import { memo, useState, useRef, useEffect } from 'react';
 import { Handle, Position } from 'reactflow';
 import { Trash2, Plus, KeyRound, Fingerprint, GripVertical } from 'lucide-react';
 import useStore from '../../../store';
 import { isJunctionTable } from '../../../data/erd';
-import { useTheme } from '../../../theme';
 
 const ROW_HEIGHT = 34;
 
@@ -97,10 +96,27 @@ function ColumnRow({ nodeId, table, column, otherColumns }) {
 }
 
 function TableNode({ id, data, selected }) {
-  const P = useTheme();
   const { renameTable, deleteTable, addColumn, nodes } = useStore();
   const [hovered, setHovered] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState('');
+  const nameInputRef = useRef(null);
   const { nodeId, table } = data;
+
+  useEffect(() => {
+    if (editingName) { nameInputRef.current?.focus(); nameInputRef.current?.select(); }
+  }, [editingName]);
+
+  const startEditingName = () => { setNameValue(table.name); setEditingName(true); };
+  const commitName = () => {
+    const trimmed = nameValue.trim();
+    if (trimmed) renameTable(nodeId, table.id, trimmed);
+    setEditingName(false);
+  };
+  const handleNameKeyDown = (e) => {
+    if (e.key === 'Enter') commitName();
+    if (e.key === 'Escape') setEditingName(false);
+  };
 
   const otherColumns = (() => {
     const parentNode = nodes.find(n => n.id === nodeId);
@@ -129,12 +145,26 @@ function TableNode({ id, data, selected }) {
         <span style={{ width: 18, height: 18, borderRadius: 4, background: '#E3A854', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1C1815" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18"/><path d="M9 3v18"/></svg>
         </span>
-        <input
-          className="nodrag"
-          value={table.name}
-          onChange={(e) => renameTable(nodeId, table.id, e.target.value)}
-          style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#E8DFD0', background: 'transparent', border: 'none', outline: 'none', padding: 0 }}
-        />
+        {editingName ? (
+          <input
+            ref={nameInputRef}
+            className="nodrag"
+            value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={handleNameKeyDown}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#E8DFD0', background: 'transparent', border: 'none', outline: 'none', padding: 0 }}
+          />
+        ) : (
+          <span
+            onDoubleClick={startEditingName}
+            title="Double-click to rename"
+            style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#E8DFD0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          >
+            {table.name}
+          </span>
+        )}
         {junction && (
           <span title="Junction table — represents a many-to-many relationship" style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 3, background: '#7D5A8822', color: '#7D5A88', border: '1px solid #7D5A8855', flexShrink: 0 }}>
             M:N JOIN

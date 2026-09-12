@@ -47,7 +47,15 @@ function openWorkspace() {
 }
 
 function tableCard(nameValue) {
-  return screen.getByDisplayValue(nameValue).closest('.react-flow__node');
+  return screen.getByText(nameValue).closest('.react-flow__node');
+}
+
+// The table name only becomes an editable input after a double-click on the
+// header span; a single click (or click-drag) instead moves the card.
+function renameTable(oldName, newName) {
+  fireEvent.doubleClick(screen.getByText(oldName));
+  fireEvent.change(screen.getByDisplayValue(oldName), { target: { value: newName } });
+  fireEvent.blur(screen.getByDisplayValue(newName));
 }
 
 describe('ErdWorkspace', () => {
@@ -66,19 +74,32 @@ describe('ErdWorkspace', () => {
   it('adds a table with a default PK "id" column when "Add Table" is clicked', () => {
     openWorkspace();
     fireEvent.click(screen.getByRole('button', { name: /add table/i }));
-    expect(screen.getByDisplayValue('new_table')).toBeInTheDocument();
+    expect(screen.getByText('new_table')).toBeInTheDocument();
     expect(screen.getByDisplayValue('id')).toBeInTheDocument();
   });
 
-  it('gives the table card a drag handle matching the node\'s dragHandle selector, outside the editable name input', () => {
+  it('renames a table only via double-click, not a single click', () => {
+    openWorkspace();
+    fireEvent.click(screen.getByRole('button', { name: /add table/i }));
+
+    // A single click on the name does nothing — it stays a static label.
+    fireEvent.click(screen.getByText('new_table'));
+    expect(screen.queryByDisplayValue('new_table')).not.toBeInTheDocument();
+
+    renameTable('new_table', 'users');
+    expect(screen.getByText('users')).toBeInTheDocument();
+    expect(screen.queryByText('new_table')).not.toBeInTheDocument();
+  });
+
+  it('gives the table card a drag handle covering the header, outside the editable name field', () => {
     openWorkspace();
     fireEvent.click(screen.getByRole('button', { name: /add table/i }));
     const table = tableCard('new_table');
     const handle = table.querySelector('.table-node-drag-handle');
     expect(handle).toBeInTheDocument();
-    // The name input must NOT itself be inside the class that starts a drag —
-    // it carries its own "nodrag" so typing doesn't fight with dragging.
-    expect(screen.getByDisplayValue('new_table')).toHaveClass('nodrag');
+    // The name label sits inside the drag handle until double-clicked — a
+    // plain click there should drag the card, not start editing.
+    expect(handle.contains(screen.getByText('new_table'))).toBe(true);
   });
 
   it('persists a table\'s new position when it stops being dragged', () => {
@@ -96,11 +117,11 @@ describe('ErdWorkspace', () => {
 
     // Table 1: "users" (default id PK column is enough as the FK target).
     fireEvent.click(screen.getByRole('button', { name: /add table/i }));
-    fireEvent.change(screen.getByDisplayValue('new_table'), { target: { value: 'users' } });
+    renameTable('new_table', 'users');
 
     // Table 2: "orders", with an extra column to use as the FK.
     fireEvent.click(screen.getByRole('button', { name: /add table/i }));
-    fireEvent.change(screen.getByDisplayValue('new_table'), { target: { value: 'orders' } });
+    renameTable('new_table', 'orders');
     const orders = tableCard('orders');
     fireEvent.click(within(orders).getByRole('button', { name: /add column/i }));
 
