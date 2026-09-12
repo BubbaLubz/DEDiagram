@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   createTable, createColumn, computeRelationships,
   isJunctionTable, relationshipId, toggleRelationshipCardinality,
+  mergeFlowNodePositions,
 } from '../erd';
 
 function withFk(table, columnId, fk) {
@@ -167,5 +168,69 @@ describe('toggleRelationshipCardinality', () => {
 
   it('clears an existing override back to auto-detection', () => {
     expect(toggleRelationshipCardinality({ cardinality: '1:1', autoDetected: false })).toBeNull();
+  });
+});
+
+describe('mergeFlowNodePositions', () => {
+  // This is the guarantee that matters most: it's what a React effect relies
+  // on to be able to bail out (setState called with the same reference is a
+  // no-op) instead of re-triggering itself forever. A version that always
+  // returns a fresh array/objects — even with identical content — turns "a
+  // table with no schema yet" into a real infinite render loop, not just a
+  // wasted render (this happened for real: see ErdWorkspace.jsx's EMPTY_SCHEMA
+  // constant and its comment).
+  it('returns the exact same array reference when nothing has changed', () => {
+    const data = { table: { name: 'users' } };
+    const current = [{ id: 't1', type: 'table', position: { x: 0, y: 0 }, dragHandle: '.h', data }];
+    const derived = [{ id: 't1', type: 'table', position: { x: 999, y: 999 }, dragHandle: '.h', data }];
+
+    expect(mergeFlowNodePositions(current, derived)).toBe(current);
+  });
+
+  it('returns a fresh array when a table\'s data reference actually changed', () => {
+    const current = [{ id: 't1', type: 'table', position: { x: 0, y: 0 }, dragHandle: '.h', data: { table: { name: 'old' } } }];
+    const derived = [{ id: 't1', type: 'table', position: { x: 0, y: 0 }, dragHandle: '.h', data: { table: { name: 'new' } } }];
+
+    expect(mergeFlowNodePositions(current, derived)).not.toBe(current);
+  });
+
+  it('keeps an existing table\'s current position even when the derived one differs', () => {
+    const current = [{ id: 't1', type: 'table', position: { x: 500, y: 260 }, data: { table: { name: 'old' } } }];
+    const derived = [{ id: 't1', type: 'table', position: { x: 60, y: 120 }, dragHandle: '.h', data: { table: { name: 'new' } } }];
+
+    const merged = mergeFlowNodePositions(current, derived);
+
+    expect(merged[0].position).toEqual({ x: 500, y: 260 });
+  });
+
+  it('still picks up fresh data (e.g. a newly-marked FK) for an existing table', () => {
+    const current = [{ id: 't1', type: 'table', position: { x: 500, y: 260 }, data: { table: { name: 'old' } } }];
+    const derived = [{ id: 't1', type: 'table', position: { x: 60, y: 120 }, dragHandle: '.h', data: { table: { name: 'new' } } }];
+
+    const merged = mergeFlowNodePositions(current, derived);
+
+    expect(merged[0].data).toEqual({ table: { name: 'new' } });
+    expect(merged[0].dragHandle).toBe('.h');
+  });
+
+  it('gives a brand-new table its derived position, since it has no current position yet', () => {
+    const current = [];
+    const derived = [{ id: 't1', type: 'table', position: { x: 60, y: 120 }, data: { table: { name: 'users' } } }];
+
+    const merged = mergeFlowNodePositions(current, derived);
+
+    expect(merged[0].position).toEqual({ x: 60, y: 120 });
+  });
+
+  it('drops a table that no longer exists in the derived list (deleted)', () => {
+    const current = [
+      { id: 't1', type: 'table', position: { x: 0, y: 0 }, data: {} },
+      { id: 't2', type: 'table', position: { x: 340, y: 0 }, data: {} },
+    ];
+    const derived = [{ id: 't2', type: 'table', position: { x: 340, y: 0 }, data: {} }];
+
+    const merged = mergeFlowNodePositions(current, derived);
+
+    expect(merged.map(n => n.id)).toEqual(['t2']);
   });
 });

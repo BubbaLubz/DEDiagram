@@ -3,17 +3,23 @@ import ReactFlow, { ReactFlowProvider, Background, BackgroundVariant, Controls, 
 import { ArrowLeft, ChevronRight, Plus } from 'lucide-react';
 import useStore from '../../store';
 import { COMPONENTS } from '../../data/componentLibrary';
-import { computeRelationships } from '../../data/erd';
+import { computeRelationships, mergeFlowNodePositions } from '../../data/erd';
 import TableNode from './nodes/TableNode';
 import RelationshipEdge from './edges/RelationshipEdge';
 
 const nodeTypes = { table: TableNode };
 const edgeTypes = { relationship: RelationshipEdge };
 
+// Module-level (not recreated per render) so a node with no schema yet gets
+// the SAME empty-tables reference on every render — an inline `{ tables: [] }`
+// fallback would hand derivedNodes' useMemo a "new" array every time,
+// permanently invalidating it and looping the sync effect below forever.
+const EMPTY_SCHEMA = { tables: [], relationshipOverrides: {} };
+
 function ErdWorkspaceInner({ nodeId }) {
   const { nodes, closeErdWorkspace, addTable, moveTable, currentDiagramName } = useStore();
   const pipelineNode = nodes.find(n => n.id === nodeId);
-  const schema = pipelineNode?.data?.schema || { tables: [], relationshipOverrides: {} };
+  const schema = pipelineNode?.data?.schema || EMPTY_SCHEMA;
   const component = COMPONENTS[pipelineNode?.data?.componentType] || {};
 
   const derivedNodes = useMemo(() => schema.tables.map(table => ({
@@ -29,8 +35,15 @@ function ErdWorkspaceInner({ nodeId }) {
   // change) — since schema.tables (and therefore derivedNodes) only changes
   // once at drag END via moveTable, holding position in local state too is
   // what makes the card actually track the cursor while dragging.
+  //
+  // Editing a table elsewhere (marking a FK, renaming a column, adding a
+  // row) also changes schema.tables, which would otherwise re-derive EVERY
+  // table's node object from scratch here — see mergeFlowNodePositions for
+  // why that reads as tables "resetting" position on any unrelated edit.
   const [flowNodes, setFlowNodes] = useState(derivedNodes);
-  useEffect(() => { setFlowNodes(derivedNodes); }, [derivedNodes]);
+  useEffect(() => {
+    setFlowNodes(current => mergeFlowNodePositions(current, derivedNodes));
+  }, [derivedNodes]);
 
   const relationships = useMemo(
     () => computeRelationships(schema.tables, schema.relationshipOverrides || {}),

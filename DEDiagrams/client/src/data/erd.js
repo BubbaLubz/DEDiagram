@@ -92,3 +92,33 @@ export function toggleRelationshipCardinality(relationship) {
   }
   return null;
 }
+
+// Reconciles the ERD canvas's live ReactFlow node array with a freshly
+// derived one (recomputed whenever schema.tables changes, for ANY reason —
+// a table added, a column renamed, a FK marked). A table already on the
+// canvas keeps its current position: ReactFlow only tracks live drag
+// movement in local state, so replacing an existing node wholesale on every
+// unrelated schema edit would discard that in favor of whatever position was
+// last written to the store, which reads as the table's position "resetting"
+// every time something elsewhere in the schema changes. Only a table not yet
+// present locally (freshly added) takes its position from the derived node.
+// Returns `currentFlowNodes` itself, unchanged, when nothing actually needs
+// to change — important beyond just avoiding pointless re-renders: the
+// caller feeds this into a React state setter, and a state update that
+// keeps re-triggering the effect that produced it (because it always
+// returns a fresh array, even one with equivalent content) is a real
+// infinite loop, not just a perf nit.
+export function mergeFlowNodePositions(currentFlowNodes, derivedFlowNodes) {
+  const existingById = new Map(currentFlowNodes.map(n => [n.id, n]));
+  let changed = currentFlowNodes.length !== derivedFlowNodes.length;
+
+  const next = derivedFlowNodes.map(derived => {
+    const existing = existingById.get(derived.id);
+    if (!existing) { changed = true; return derived; }
+    if (existing.data === derived.data && existing.dragHandle === derived.dragHandle) return existing;
+    changed = true;
+    return { ...existing, data: derived.data, dragHandle: derived.dragHandle };
+  });
+
+  return changed ? next : currentFlowNodes;
+}
