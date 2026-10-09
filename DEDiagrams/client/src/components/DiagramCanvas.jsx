@@ -1,10 +1,9 @@
 import { useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Background, Controls, MiniMap, BackgroundVariant,
-  useReactFlow, useViewport, MarkerType, Panel,
-  getNodesBounds, getViewportForBounds, SelectionMode,
+  useReactFlow, useViewport, MarkerType, Panel, SelectionMode,
 } from 'reactflow';
-import { toPng } from 'html-to-image';
+import { domToPng } from 'modern-screenshot';
 import { graphlib as dagreGraphlib, layout as dagreLayout } from '@dagrejs/dagre';
 import { v4 as uuidv4 } from 'uuid';
 import 'reactflow/dist/style.css';
@@ -177,47 +176,37 @@ export default function DiagramCanvas() {
     fitView({ duration: 600, padding: 0.1 });
   }, [fitView]);
 
-  const handleExportImage = useCallback(() => {
-    const imageWidth = 2560;
-    const imageHeight = 1440;
-    const nodesBounds = getNodesBounds(getNodes());
-    const { x, y, zoom } = getViewportForBounds(nodesBounds, imageWidth, imageHeight, 0.5, 2, 0.1);
-    const viewport = document.querySelector('.react-flow__viewport');
-    if (!viewport) return;
+  const handleExportImage = useCallback(async () => {
+    if (!reactFlowWrapper.current || !getNodes().length) return;
 
-    // Skip external <link> nodes (e.g. Google Fonts) — html-to-image's attempt
-    // to fetch and embed them cross-origin throws a SecurityError on deployed sites.
-    // The fonts are already loaded in the page and available to the canvas renderer.
-    const filter = (node) =>
-      !(node.tagName === 'LINK' && node.href && !node.href.startsWith(window.location.origin));
+    // Fit all nodes into view so the screenshot always shows the full diagram
+    fitView({ duration: 0, padding: 0.1 });
+    // Wait one frame for ReactFlow to apply the new viewport transform
+    await new Promise(r => requestAnimationFrame(r));
 
-    const options = {
-      backgroundColor: '#171310',
-      width: imageWidth,
-      height: imageHeight,
-      filter,
-      style: {
-        width: `${imageWidth}px`,
-        height: `${imageHeight}px`,
-        transform: `translate(${x}px, ${y}px) scale(${zoom})`,
-      },
-    };
-
-    // First call warms up html-to-image's internal resource cache;
-    // second call captures with everything properly loaded.
-    toPng(viewport, options)
-      .then(() => toPng(viewport, options))
-      .then((dataUrl) => {
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = `${(useStore.getState().currentDiagramName || 'diagram').replace(/\s+/g, '-').toLowerCase()}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }).catch((err) => {
-        console.error('Export PNG failed:', err);
+    try {
+      const dataUrl = await domToPng(reactFlowWrapper.current, {
+        scale: 2,
+        backgroundColor: '#171310',
+        // Exclude the UI chrome — controls and minimap shouldn't appear in the export
+        filter: (node) => {
+          const el = /** @type {Element} */ (node);
+          if (el.classList?.contains('react-flow__controls')) return false;
+          if (el.classList?.contains('react-flow__minimap')) return false;
+          return true;
+        },
       });
-  }, [getNodes]);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `${(useStore.getState().currentDiagramName || 'diagram').replace(/\s+/g, '-').toLowerCase()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Export PNG failed:', err);
+      alert('Screenshot failed — please try again.');
+    }
+  }, [getNodes, fitView]);
 
   // Keyboard shortcuts
   useEffect(() => {
