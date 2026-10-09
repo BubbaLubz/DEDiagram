@@ -181,7 +181,7 @@ export default function DiagramCanvas() {
     const imageWidth = 2560;
     const imageHeight = 1440;
     const nodesBounds = getNodesBounds(getNodes());
-    const { x, y, zoom } = getViewportForBounds(nodesBounds, imageWidth, imageHeight, 0.5, 2, 80);
+    const { x, y, zoom } = getViewportForBounds(nodesBounds, imageWidth, imageHeight, 0.5, 2, 0.1);
     const viewport = document.querySelector('.react-flow__viewport');
     if (!viewport) return;
     toPng(viewport, {
@@ -197,7 +197,11 @@ export default function DiagramCanvas() {
       const a = document.createElement('a');
       a.href = dataUrl;
       a.download = `${(useStore.getState().currentDiagramName || 'diagram').replace(/\s+/g, '-').toLowerCase()}.png`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
+    }).catch((err) => {
+      console.error('Export PNG failed:', err);
     });
   }, [getNodes]);
 
