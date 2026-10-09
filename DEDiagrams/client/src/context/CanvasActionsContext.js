@@ -1,9 +1,17 @@
 import { createContext, useContext } from 'react';
 
-export const CanvasActionsContext = createContext({
-  autoLayout: () => {},
-  fitView: () => {},
-  exportImage: () => {},
-});
+const defaults = { autoLayout: () => {}, fitView: () => {}, exportImage: () => {} };
 
-export const useCanvasActions = () => useContext(CanvasActionsContext);
+// The context value is a MutableRefObject so the Provider can live above
+// DiagramCanvas while DiagramCanvas imperatively writes the real functions in.
+// Toolbar reads at call time via the proxy returned by useCanvasActions.
+export const CanvasActionsContext = createContext({ current: defaults });
+
+export const useCanvasActions = () => {
+  const ref = useContext(CanvasActionsContext);
+  return {
+    autoLayout: (...args) => ref.current.autoLayout(...args),
+    fitView:    (...args) => ref.current.fitView(...args),
+    exportImage: (...args) => ref.current.exportImage(...args),
+  };
+};

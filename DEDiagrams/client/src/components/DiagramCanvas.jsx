@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect, useMemo } from 'react';
+import { useCallback, useRef, useEffect, useMemo, useContext } from 'react';
 import ReactFlow, {
   Background, Controls, MiniMap, BackgroundVariant,
   useReactFlow, useViewport, MarkerType, Panel, SelectionMode,
@@ -232,14 +232,18 @@ export default function DiagramCanvas() {
     return () => window.removeEventListener('keydown', handler);
   }, [openSaveModal, undo]);
 
-  const canvasActions = useMemo(() => ({
-    autoLayout: handleAutoLayout,
-    fitView: handleFitView,
-    exportImage: handleExportImage,
-  }), [handleAutoLayout, handleFitView, handleExportImage]);
+  // Write the real handlers into the shared ref so Toolbar (a sibling, not
+  // a descendant) can call them. The Provider lives in AppShell above both.
+  const canvasActionsRef = useContext(CanvasActionsContext);
+  useMemo(() => {
+    canvasActionsRef.current = {
+      autoLayout: handleAutoLayout,
+      fitView: handleFitView,
+      exportImage: handleExportImage,
+    };
+  }, [canvasActionsRef, handleAutoLayout, handleFitView, handleExportImage]);
 
   return (
-    <CanvasActionsContext.Provider value={canvasActions}>
     <div ref={reactFlowWrapper} className="flex-1 h-full relative">
       <ReactFlow
         nodes={nodes}
@@ -372,7 +376,6 @@ export default function DiagramCanvas() {
         </g>
       </svg>
     </div>
-    </CanvasActionsContext.Provider>
   );
 }
 

@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ReactFlowProvider } from 'reactflow';
+import { CanvasActionsContext } from './context/CanvasActionsContext';
 import { LiveblocksProvider, RoomProvider } from '@liveblocks/react';
 import LeftSidebar from './components/LeftSidebar';
 import DiagramCanvas from './components/DiagramCanvas';
@@ -27,9 +28,11 @@ function CollabSync() {
 function AppShell() {
   const { isDetailOpen, isCostPanelOpen } = useStore();
   const P = useTheme();
+  const canvasActionsRef = useRef({ autoLayout: () => {}, fitView: () => {}, exportImage: () => {} });
 
   return (
     <ReactFlowProvider>
+      <CanvasActionsContext.Provider value={canvasActionsRef}>
       <div
         className="h-screen w-screen flex flex-col overflow-hidden"
         style={{ background: P.bg, fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}
@@ -49,6 +52,7 @@ function AppShell() {
       <AccountSettingsModal/>
       <ShareModal/>
       <ErdWorkspace/>
+      </CanvasActionsContext.Provider>
     </ReactFlowProvider>
   );
 }
