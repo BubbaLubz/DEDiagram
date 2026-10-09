@@ -184,25 +184,39 @@ export default function DiagramCanvas() {
     const { x, y, zoom } = getViewportForBounds(nodesBounds, imageWidth, imageHeight, 0.5, 2, 0.1);
     const viewport = document.querySelector('.react-flow__viewport');
     if (!viewport) return;
-    toPng(viewport, {
+
+    // Skip external <link> nodes (e.g. Google Fonts) — html-to-image's attempt
+    // to fetch and embed them cross-origin throws a SecurityError on deployed sites.
+    // The fonts are already loaded in the page and available to the canvas renderer.
+    const filter = (node) =>
+      !(node.tagName === 'LINK' && node.href && !node.href.startsWith(window.location.origin));
+
+    const options = {
       backgroundColor: '#171310',
       width: imageWidth,
       height: imageHeight,
+      filter,
       style: {
         width: `${imageWidth}px`,
         height: `${imageHeight}px`,
         transform: `translate(${x}px, ${y}px) scale(${zoom})`,
       },
-    }).then((dataUrl) => {
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `${(useStore.getState().currentDiagramName || 'diagram').replace(/\s+/g, '-').toLowerCase()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }).catch((err) => {
-      console.error('Export PNG failed:', err);
-    });
+    };
+
+    // First call warms up html-to-image's internal resource cache;
+    // second call captures with everything properly loaded.
+    toPng(viewport, options)
+      .then(() => toPng(viewport, options))
+      .then((dataUrl) => {
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `${(useStore.getState().currentDiagramName || 'diagram').replace(/\s+/g, '-').toLowerCase()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }).catch((err) => {
+        console.error('Export PNG failed:', err);
+      });
   }, [getNodes]);
 
   // Keyboard shortcuts
